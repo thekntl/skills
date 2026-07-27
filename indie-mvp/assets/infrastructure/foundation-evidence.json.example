@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "state": "STAGING_VERIFIED",
+  "ownerApproved": true,
+  "ownerApprovedAt": "{{ISO_8601_TIMESTAMP}}",
+  "primarySourceReviewedAt": "{{ISO_8601_TIMESTAMP_WITHIN_30_DAYS}}",
+  "contractEvidenceUrl": "{{STAGING_INFRASTRUCTURE_GITHUB_ISSUE_URL}}",
+  "restoreEvidenceUrl": "{{ISOLATED_RESTORE_GITHUB_ISSUE_URL}}",
+  "primarySources": [
+    "https://github.com/freescout-help-desk/freescout",
+    "https://github.com/nfrastack/container-freescout",
+    "https://github.com/docker-library/postgres"
+  ],
+  "isolatedRestorePassed": true,
+  "mailSchedulerCompatibilityPassed": true,
+  "secretFileContractPassed": true,
+  "manifestSha256": "{{SHARED_PLATFORM_YML_SHA256}}",
+  "stagingDeploymentContractSha256": "{{COMPLETE_STAGING_DEPLOYMENT_CONTRACT_SHA256_EXCLUDING_EVIDENCE_CONTROL_FIELDS}}",
+  "productionDeploymentContractSha256": null,
+  "productionContractEvidenceUrl": null,
+  "productionOwnerApproved": null,
+  "productionOwnerApprovedAt": null,
+  "compatibility": {
+    "POSTGRES_IMAGE": "{{STAGING_PROVEN_POSTGRES_IMAGE_DIGEST}}",
+    "FREESCOUT_IMAGE": "{{STAGING_PROVEN_FREESCOUT_IMAGE_DIGEST}}",
+    "POSTGRES_MAJOR": "{{STAGING_PROVEN_POSTGRES_MAJOR}}",
+    "POSTGRES_ARCHITECTURE": "{{STAGING_PROVEN_POSTGRES_ARCHITECTURE}}",
+    "FREESCOUT_ARCHITECTURE": "{{STAGING_PROVEN_FREESCOUT_ARCHITECTURE}}",
+    "POSTGRES_DATA_TARGET": "{{STAGING_PROVEN_POSTGRES_DATA_TARGET}}",
+    "FREESCOUT_SETUP_TYPE": "{{STAGING_PROVEN_SETUP_TYPE}}",
+    "FREESCOUT_SCHEDULER_TYPE": "{{STAGING_PROVEN_SCHEDULER_TYPE}}",
+    "FREESCOUT_ENABLE_AUTO_UPDATE": "FALSE"
+  },
+  "compatibilityFingerprint": "{{STAGING_COMPATIBILITY_SHA256}}"
+}
