@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "repository": "{{OWNER/REPOSITORY}}",
+  "launchMapIssueUrl": "{{CANONICAL_PRODUCT_LAUNCH_MAP_GITHUB_ISSUE_URL}}",
+  "phaseLabel": "{{phase:frontend}}",
+  "readyLabel": "ready-for-agent",
+  "blockedLabel": "blocked",
+  "decisionLabel": "decision",
+  "ownerActionLabel": "owner-action",
+  "claimLabel": "loop-claimed",
+  "executionMode": "autonomous",
+  "baseBranch": "main",
+  "branchPrefix": "codex/",
+  "worktreeDirectory": "state/worktrees",
+  "maxAttempts": 6,
+  "maxRuntimeMinutes": 480,
+  "maxIssuesPerRun": 6,
+  "frontierLimit": 50,
+  "concurrency": 1,
+  "tools": {
+    "node": {
+      "executable": "{{ABSOLUTE_OWNER_REVIEWED_NODE_EXECUTABLE}}",
+      "sha256": "{{OWNER_REVIEWED_NODE_EXECUTABLE_SHA256}}"
+    },
+    "git": {
+      "executable": "{{ABSOLUTE_OWNER_REVIEWED_GIT_EXECUTABLE}}",
+      "sha256": "{{OWNER_REVIEWED_GIT_EXECUTABLE_SHA256}}"
+    },
+    "gitRemoteHttps": {
+      "executable": "{{ABSOLUTE_OWNER_REVIEWED_GIT_REMOTE_HTTPS_EXECUTABLE}}",
+      "sha256": "{{OWNER_REVIEWED_GIT_REMOTE_HTTPS_EXECUTABLE_SHA256}}"
+    },
+    "gh": {
+      "executable": "{{ABSOLUTE_OWNER_REVIEWED_GH_EXECUTABLE}}",
+      "sha256": "{{OWNER_REVIEWED_GH_EXECUTABLE_SHA256}}"
+    },
+    "bash": {
+      "executable": "{{ABSOLUTE_OWNER_REVIEWED_BASH_EXECUTABLE}}",
+      "sha256": "{{OWNER_REVIEWED_BASH_EXECUTABLE_SHA256}}"
+    }
+  },
+  "agent": {
+    "executable": "{{ABSOLUTE_OWNER_REVIEWED_AGENT_EXECUTABLE}}",
+    "sha256": "{{OWNER_REVIEWED_AGENT_EXECUTABLE_SHA256}}",
+    "argumentsFile": "agent-args.json",
+    "argumentsSha256": "{{OWNER_REVIEWED_AGENT_ARGUMENTS_SHA256}}",
+    "runtimeGuardFile": "agent-runtime-guard.json",
+    "runtimeGuardSha256": "{{OWNER_REVIEWED_RUNTIME_GUARD_SHA256}}"
+  },
+  "safeChecksFile": "safe-checks.json",
+  "glossary": {
+    "context": "CONTEXT.md",
+    "glossary": "docs/GLOSSARY.md",
+    "output": "docs/glossary.html"
+  }
+}

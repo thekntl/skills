@@ -1,0 +1,28 @@
+Owner-reviewed autonomous agent enforcement evidence
+
+agent-executable-sha256: {{OWNER_REVIEWED_AGENT_EXECUTABLE_SHA256}}
+agent-arguments-sha256: {{OWNER_REVIEWED_AGENT_ARGUMENTS_SHA256}}
+node-executable-sha256: {{OWNER_REVIEWED_NODE_EXECUTABLE_SHA256}}
+git-executable-sha256: {{OWNER_REVIEWED_GIT_EXECUTABLE_SHA256}}
+gitRemoteHttps-executable-sha256: {{OWNER_REVIEWED_GIT_REMOTE_HTTPS_EXECUTABLE_SHA256}}
+gh-executable-sha256: {{OWNER_REVIEWED_GH_EXECUTABLE_SHA256}}
+bash-executable-sha256: {{OWNER_REVIEWED_BASH_EXECUTABLE_SHA256}}
+git-configuration-sha256: {{OWNER_REVIEWED_GIT_CONFIGURATION_SHA256}}
+git-attributes-sha256: {{OWNER_REVIEWED_GIT_ATTRIBUTES_SHA256}}
+git-origin: https://github.com/{{OWNER/REPOSITORY}}.git
+preflight-launcher-sha256: {{OWNER_REVIEWED_PREFLIGHT_LAUNCHER_SHA256}}
+runner-launcher-sha256: {{OWNER_REVIEWED_PHASE_RUNNER_LAUNCHER_SHA256}}
+agent-kind: direct-native-codex
+container-runtime: deny
+indirect-repository-commands: deny
+git-clean-smudge-process-filters: runtime-rejected
+git-credential-remote-helpers: runtime-rejected
+git-origin-transport: direct-https-github-with-pinned-gh-token
+git-environment-execution-paths: runner-sanitized
+git-hooks-fsmonitor-signing-external-diff: runner-disabled
+
+Evidence:
+{{DESCRIBE_THE_VERIFIED_SANDBOX_AND_TOOL_POLICY_THAT_ENFORCES_THE_DENIALS}}
+
+If this evidence cannot be completed truthfully, keep the issue outside the
+autonomous queue and use an explicit owner handoff.
