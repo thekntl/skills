@@ -10,13 +10,14 @@ Run one visible launch map with short, phase-scoped frontiers. Keep decisions in
 ## Start or resume
 
 1. Read [operating-contract.md](references/operating-contract.md) before changing project state.
-2. Find the product repository and canonical `Product Launch Map` issue.
+2. Read [github-planning.md](references/github-planning.md) before creating or changing any GitHub tracker item. Use applicable native issue relations, milestones, metadata, and Projects; fail closed when a required mutation or readback is unavailable.
+3. Find the product repository and canonical `Product Launch Map` issue.
    - If both exist, resume from the active frontier. Do not replay completed discovery.
    - If either is absent, read [phase-bootstrap.md](references/phase-bootstrap.md) and bootstrap from the codename, product promise, target market/category, and platform. Ask only for missing inputs that block the selected route's first artifact: a demand experiment for validate-first, or a target-runtime prototype for build-first/parallel.
-3. Read [product-map-and-grilling.md](references/product-map-and-grilling.md). Keep one master map; open a short Wayfinder checkpoint at each phase boundary.
-4. Load only the reference for the active phase.
+4. Read [product-map-and-grilling.md](references/product-map-and-grilling.md). Keep one master map; open a short Wayfinder checkpoint at each phase boundary.
+5. Load only the reference for the active phase.
 
-Completion criterion: the active phase, its canonical issue, its open decisions, and its next checkable gate are visible.
+Verify that the active phase, its canonical issue, its open decisions, and its next checkable gate are visible, and that all applicable native tracker metadata passes readback.
 
 ## Run the phase engine
 
@@ -33,15 +34,15 @@ Use this order, skipping a gate only when its reference explicitly permits it:
 
 For each phase:
 
-1. Open or update one phase issue from [phase-issue.md](assets/github/phase-issue.md).
+1. Open or update one phase issue from [phase-issue.md](assets/github/phase-issue.md), attach it natively to the Product Launch Map, and apply its milestone and launch-Project metadata.
 2. Run a scoped Wayfinder checkpoint: current evidence, decisions, risks, gate, and smallest credible route.
 3. Apply paved-road defaults from [fixed-stack.md](references/fixed-stack.md).
 4. Use Batch Grill only for material unresolved choices. Record uncertainty and run the mandatory reevaluation round.
-5. Convert every settled outcome into self-contained implementation issues.
+5. Convert every settled outcome into self-contained implementation issues, then attach native parent/sub-issue and real blocked-by/blocking relationships in a second pass.
 6. When the phase frontier contains only `ready-for-agent` work, read [implementation-loops.md](references/implementation-loops.md) and generate that phase's unattended package.
 7. Verify the phase gate and update the master map. For interactive work, run the manual Ask Matt closeout before the next operation. For autonomous work, keep processing eligible issues and put one exact Ask Matt reminder in the final morning report.
 
-Completion criterion: the phase issue contains decision evidence, gate evidence, linked agent-ready work, the uncertainty verdict, and either the interactive Ask Matt result or the autonomous-loop reminder.
+Verify that the phase issue contains decision evidence, gate evidence, native related work, the uncertainty verdict, and either the interactive Ask Matt result or the autonomous-loop reminder. Verify the phase hierarchy, dependencies, milestone, and Project membership by readback.
 
 ## Load phase references
 
@@ -57,6 +58,7 @@ Completion criterion: the phase issue contains decision evidence, gate evidence,
 
 - Speak with the owner in Turkish. Write code, documentation, research, issues, comments, and pull requests in English.
 - Treat GitHub Issues as the operational source of truth. End every issue and substantive issue comment with `## Plain-English summary`.
+- Use every applicable native GitHub planning feature. Never substitute body-only links for supported hierarchy, dependencies, milestones, Projects, types, assignments, or state reasons.
 - Keep the public-launch target at three to seven days. Move nonessential scope to post-launch.
 - Prototype visual decisions on their actual platform. A browser mock is not approval evidence for an Apple interface.
 - Put every external system behind a product-owned Adapter boundary.
@@ -64,4 +66,4 @@ Completion criterion: the phase issue contains decision evidence, gate evidence,
 - Start viable providers on free plans. Leave payment methods, purchases, upgrades, budgets, legal assent, identity verification, MFA, and irreversible ownership changes to the owner.
 - Do not commit, push, publish, deploy, create paid resources, or activate campaigns unless the current request and authority explicitly include that action.
 
-Completion criterion: no hidden decision store, unresolved product choice, Docker runtime action, secret, spend action, or owner-only operation enters an unattended queue.
+Keep every hidden decision store, unresolved product choice, Docker runtime action, secret, spend action, and owner-only operation out of unattended queues.

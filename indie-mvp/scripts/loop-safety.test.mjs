@@ -6,11 +6,16 @@ import { test } from "node:test";
 
 import {
   buildPreflightGitEnvironment,
+  collectLaunchProjectReadback,
+  collectLaunchIssueTree,
+  issueTypeReadbackArgs,
   resolveSafePath,
   validateAgentArguments,
   validateApprovalWindow,
   validateFrontierSnapshot,
   validateLaunchGateEvidence,
+  validateLaunchProjectReadback,
+  validateIssueTypeReadback,
   validateSingleIssueSnapshot,
   validateLoopConfig,
   validateSafeChecks,
@@ -21,6 +26,27 @@ const baseConfig = {
   schemaVersion: 1,
   repository: "thekntl/example",
   launchMapIssueUrl: "https://github.com/thekntl/example/issues/1",
+  phaseIssueNumber: 8,
+  milestoneTitle: "MVP public launch — 2026-08-02",
+  milestoneDueDate: "2026-08-02",
+  issueType: {
+    mode: "required",
+    name: "Task",
+  },
+  launchProject: {
+    mode: "required",
+    owner: "thekntl",
+    number: 3,
+    id: "PVT_example",
+    title: "Example — MVP Launch",
+    statusFieldId: "PVTSSF_example",
+    statusOptionIds: {
+      ready: "ready-option",
+      inProgress: "in-progress-option",
+      inReview: "in-review-option",
+      blocked: "blocked-option",
+    },
+  },
   phaseLabel: "phase:frontend",
   readyLabel: "ready-for-agent",
   blockedLabel: "blocked",
@@ -97,6 +123,18 @@ function issue(overrides = {}, contractOverrides = {}) {
     url: "https://github.com/thekntl/example/issues/42",
     assignees: [],
     blockedBy: [],
+    issueType: { name: "Task" },
+    parent: { number: 8 },
+    milestone: {
+      title: "MVP public launch — 2026-08-02",
+      dueOn: "2026-08-02T23:59:59Z",
+    },
+    projectItems: [
+      {
+        title: "Example — MVP Launch",
+        status: { name: "Ready" },
+      },
+    ],
     labels: [
       { name: "phase:frontend" },
       { name: "ready-for-agent" },
@@ -199,6 +237,352 @@ test("frontier accepts only an unclaimed, decision-complete issue in the active 
 
   assert.deepEqual(result.selected.map(({ number }) => number), [42]);
   assert.deepEqual(result.errors, []);
+});
+
+test("frontier fails closed on native planning drift", () => {
+  const cases = [
+    ["missing parent", { parent: null }, /native parent/],
+    ["wrong parent", { parent: { number: 9 } }, /native parent/],
+    ["missing milestone", { milestone: null }, /milestone/],
+    ["missing issue type", { issueType: null }, /issue type/],
+    ["wrong issue type", { issueType: { name: "Bug" } }, /issue type/],
+    [
+      "wrong milestone",
+      {
+        milestone: {
+          title: "Post-launch stabilization — 2026-08-09",
+          dueOn: "2026-08-09T23:59:59Z",
+        },
+      },
+      /milestone/,
+    ],
+    [
+      "wrong milestone due date",
+      {
+        milestone: {
+          title: "MVP public launch — 2026-08-02",
+          dueOn: "2026-08-03T23:59:59Z",
+        },
+      },
+      /due date/,
+    ],
+    ["missing Project", { projectItems: [] }, /launch Project/],
+    [
+      "wrong Project Status",
+      {
+        projectItems: [
+          {
+            title: "Example — MVP Launch",
+            status: { name: "Backlog" },
+          },
+        ],
+      },
+      /Project Status/,
+    ],
+  ];
+
+  for (const [name, overrides, expected] of cases) {
+    const result = validateFrontierSnapshot(
+      [issue(overrides)],
+      validateLoopConfig(baseConfig),
+    );
+    assert.equal(result.selected.length, 0, name);
+    assert.match(result.errors.join("\n"), expected, name);
+  }
+});
+
+test("loop config permits only an explicit documented tiny-Project skip", () => {
+  const tinySkip = {
+    mode: "tiny-skip",
+    owner: "thekntl",
+    title: "Example — MVP Launch",
+    mapChildCount: 4,
+    repositoryCount: 1,
+    reason: "One map plus four child issues in one repository.",
+  };
+
+  assert.deepEqual(
+    validateLoopConfig({ ...baseConfig, launchProject: tinySkip }).launchProject,
+    tinySkip,
+  );
+  assert.throws(
+    () => validateLoopConfig({
+      ...baseConfig,
+      launchProject: { ...tinySkip, reason: "" },
+    }),
+    /launchProject.reason/,
+  );
+});
+
+test("required Project readback binds identity, membership, and Ready status", () => {
+  const snapshots = {
+    project: {
+      id: "PVT_example",
+      number: 3,
+      title: "Example — MVP Launch",
+    },
+    items: {
+      totalCount: 1,
+      items: [
+        {
+          id: "PVTI_issue",
+          content: { url: "https://github.com/thekntl/example/issues/42" },
+          status: "Ready",
+        },
+      ],
+    },
+  };
+
+  assert.deepEqual(
+    validateLaunchProjectReadback([issue()], baseConfig, snapshots),
+    [],
+  );
+  assert.match(
+    validateLaunchProjectReadback(
+      [issue()],
+      baseConfig,
+      {
+        ...snapshots,
+        project: { ...snapshots.project, id: "PVT_wrong" },
+      },
+    ).join("\n"),
+    /identity/,
+  );
+});
+
+test("one canonical helper owns required and tiny Project readback commands", () => {
+  const requiredCalls = [];
+  const required = collectLaunchProjectReadback(baseConfig, (args) => {
+    requiredCalls.push(args);
+    return args[1] === "view"
+      ? { id: "PVT_example", number: 3, title: "Example — MVP Launch" }
+      : { totalCount: 0, items: [] };
+  });
+  assert.equal(required.project.id, "PVT_example");
+  assert.deepEqual(
+    requiredCalls.map((args) => args.slice(0, 2)),
+    [
+      ["project", "view"],
+      ["project", "item-list"],
+    ],
+  );
+
+  const tinyConfig = {
+    ...baseConfig,
+    launchProject: {
+      mode: "tiny-skip",
+      owner: "thekntl",
+      title: "Example — MVP Launch",
+      mapChildCount: 0,
+      repositoryCount: 1,
+      reason: "Only the map exists in one repository.",
+    },
+  };
+  const tinyCalls = [];
+  const tiny = collectLaunchProjectReadback(tinyConfig, (args) => {
+    tinyCalls.push(args);
+    if (args[0] === "project") {
+      return { totalCount: 0, projects: [] };
+    }
+    return {
+      number: 1,
+      url: "https://github.com/thekntl/example/issues/1",
+      subIssues: [],
+      subIssuesSummary: { total: 0 },
+    };
+  });
+  assert.equal(tiny.launchTree.issues.length, 1);
+  assert.deepEqual(
+    tinyCalls.map((args) => args.slice(0, 2)),
+    [
+      ["project", "list"],
+      ["issue", "view"],
+    ],
+  );
+});
+
+test("tiny Project skip is rejected when live scope is not tiny or Project exists", () => {
+  const tinyConfig = {
+    ...baseConfig,
+    launchProject: {
+      mode: "tiny-skip",
+      owner: "thekntl",
+      title: "Example — MVP Launch",
+      mapChildCount: 4,
+      repositoryCount: 1,
+      reason: "One map plus four child issues in one repository.",
+    },
+  };
+  const snapshots = {
+    projects: { totalCount: 0, projects: [] },
+    launchTree: {
+      rootUrl: "https://github.com/thekntl/example/issues/1",
+      issues: [
+        { url: "https://github.com/thekntl/example/issues/1" },
+        { url: "https://github.com/thekntl/example/issues/2" },
+        { url: "https://github.com/thekntl/example/issues/3" },
+        { url: "https://github.com/thekntl/example/issues/4" },
+        { url: "https://github.com/thekntl/example/issues/5" },
+      ],
+      repositoryCount: 1,
+    },
+  };
+
+  assert.deepEqual(
+    validateLaunchProjectReadback([issue()], tinyConfig, snapshots),
+    [],
+  );
+  assert.match(
+    validateLaunchProjectReadback(
+      [issue()],
+      tinyConfig,
+      {
+        ...snapshots,
+        launchTree: {
+          ...snapshots.launchTree,
+          issues: [
+            ...snapshots.launchTree.issues,
+            { url: "https://github.com/thekntl/example/issues/6" },
+          ],
+        },
+      },
+    ).join("\n"),
+    /at most four/,
+  );
+  assert.match(
+    validateLaunchProjectReadback(
+      [issue()],
+      tinyConfig,
+      {
+        ...snapshots,
+        projects: {
+          totalCount: 1,
+          projects: [{ title: "Example — MVP Launch" }],
+        },
+      },
+    ).join("\n"),
+    /already exists/,
+  );
+});
+
+test("tiny Project skip traverses nested launch scope instead of direct children only", () => {
+  const nodes = new Map([
+    [
+      "https://github.com/thekntl/example/issues/1",
+      {
+        number: 1,
+        url: "https://github.com/thekntl/example/issues/1",
+        subIssuesSummary: { total: 4 },
+        subIssues: [2, 3, 4, 5].map((number) => ({
+          number,
+          url: `https://github.com/thekntl/example/issues/${number}`,
+        })),
+      },
+    ],
+    ...[2, 4, 5].map((number) => [
+      `https://github.com/thekntl/example/issues/${number}`,
+      {
+        number,
+        url: `https://github.com/thekntl/example/issues/${number}`,
+        subIssuesSummary: { total: 0 },
+        subIssues: [],
+      },
+    ]),
+    [
+      "https://github.com/thekntl/example/issues/3",
+      {
+        number: 3,
+        url: "https://github.com/thekntl/example/issues/3",
+        subIssuesSummary: { total: 1 },
+        subIssues: [
+          {
+            number: 6,
+            url: "https://github.com/thekntl/example/issues/6",
+          },
+        ],
+      },
+    ],
+    [
+      "https://github.com/thekntl/example/issues/6",
+      {
+        number: 6,
+        url: "https://github.com/thekntl/example/issues/6",
+        subIssuesSummary: { total: 0 },
+        subIssues: [],
+      },
+    ],
+  ]);
+  const launchTree = collectLaunchIssueTree(
+    baseConfig,
+    (url) => nodes.get(url),
+  );
+  const tinyConfig = {
+    ...baseConfig,
+    launchProject: {
+      mode: "tiny-skip",
+      owner: "thekntl",
+      title: "Example — MVP Launch",
+      mapChildCount: 4,
+      repositoryCount: 1,
+      reason: "One map plus four child issues in one repository.",
+    },
+  };
+
+  assert.equal(launchTree.issues.length, 6);
+  assert.match(
+    validateLaunchProjectReadback(
+      [issue()],
+      tinyConfig,
+      {
+        projects: { totalCount: 0, projects: [] },
+        launchTree,
+      },
+    ).join("\n"),
+    /at most four/,
+  );
+});
+
+test("issue type availability is discovered live", () => {
+  assert.deepEqual(
+    issueTypeReadbackArgs(baseConfig),
+    [
+      "api",
+      "--hostname",
+      "github.com",
+      "-H",
+      "X-GitHub-Api-Version: 2026-03-10",
+      "--paginate",
+      "--slurp",
+      "repos/thekntl/example/issue-types?per_page=100",
+    ],
+  );
+  assert.deepEqual(
+    validateIssueTypeReadback(baseConfig, [{ name: "Task" }, { name: "Bug" }]),
+    [],
+  );
+  assert.match(
+    validateIssueTypeReadback(baseConfig, []).join("\n"),
+    /configured native issue type Task is unavailable/,
+  );
+  const unavailableConfig = {
+    ...baseConfig,
+    issueType: {
+      mode: "unavailable",
+      reason: "The live repository capability query returned no issue types.",
+    },
+  };
+  assert.deepEqual(validateIssueTypeReadback(unavailableConfig, []), []);
+  assert.match(
+    validateIssueTypeReadback(unavailableConfig, [{ name: "Task" }]).join("\n"),
+    /available/,
+  );
+});
+
+test("loop config requires a real milestone due date", () => {
+  assert.throws(
+    () => validateLoopConfig({ ...baseConfig, milestoneDueDate: "soon" }),
+    /milestoneDueDate/,
+  );
 });
 
 test("frontier rejects every prohibited queue condition", () => {

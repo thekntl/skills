@@ -5,13 +5,40 @@ import { test } from "node:test";
 import {
   branchNameForIssue,
   buildAgentEnvironment,
+  addPullRequestToProject,
   remainingIssueNumbers,
+  pullRequestBody,
+  recoverFailedClaim,
   selectClaimWinner,
   substituteAgentArguments,
+  updateProjectStatus,
+  validateBlockedStateReadback,
+  validateClaimReleaseReadback,
+  validatePullRequestReadback,
   validatePreflightState,
   validateWorkerResult,
   validateWorkerStop,
 } from "./run-phase-loop.mjs";
+
+const projectConfig = {
+  repository: "thekntl/example",
+  milestoneTitle: "MVP public launch — 2026-08-02",
+  milestoneDueDate: "2026-08-02",
+  launchProject: {
+    mode: "required",
+    owner: "thekntl",
+    number: 3,
+    id: "PVT_example",
+    title: "Example — MVP Launch",
+    statusFieldId: "PVTSSF_example",
+    statusOptionIds: {
+      ready: "ready-option",
+      inProgress: "in-progress-option",
+      inReview: "in-review-option",
+      blocked: "blocked-option",
+    },
+  },
+};
 
 test("agent arguments substitute only declared scalar tokens", () => {
   assert.deepEqual(
@@ -221,5 +248,247 @@ test("worker stop distinguishes independent implementation failure from a global
       message: "Docker would be required.",
     }),
     /global/,
+  );
+});
+
+test("pull request body creates a native closing relationship", () => {
+  const body = pullRequestBody(
+    { number: 42, title: "Implement the approved shell" },
+    {
+      summary: "Implemented the approved shell.",
+      includedWork: ["Approved shell"],
+      nonGoals: ["Backend changes"],
+      verification: ["Static checks"],
+      humanValidation: "recommended",
+      humanValidationReason: "Visual check.",
+      humanValidationSteps: ["Open the shell."],
+      expectedResult: "The shell appears.",
+      failureSigns: ["The shell clips."],
+      risks: [],
+      rollback: "Revert the focused commit.",
+    },
+    { executionMode: "autonomous" },
+    "unused",
+  );
+
+  assert.match(body, /^Closes #42$/m);
+  assert.doesNotMatch(body, /Closes no issue automatically/);
+});
+
+test("Project Status mutation is followed by native readback", () => {
+  const calls = [];
+  let status = "Ready";
+  const fakeGh = (args) => {
+    calls.push(args);
+    if (args[1] === "item-edit") {
+      status = "In progress";
+      return "";
+    }
+    return JSON.stringify({
+      items: [
+        {
+          id: "PVTI_issue",
+          content: {
+            url: "https://github.com/thekntl/example/issues/42",
+          },
+          status,
+        },
+      ],
+    });
+  };
+
+  const item = updateProjectStatus(
+    projectConfig,
+    "https://github.com/thekntl/example/issues/42",
+    "inProgress",
+    fakeGh,
+  );
+
+  assert.equal(item.status, "In progress");
+  assert.deepEqual(
+    calls.map((args) => args.slice(0, 2)),
+    [
+      ["project", "item-list"],
+      ["project", "item-edit"],
+      ["project", "item-list"],
+    ],
+  );
+});
+
+test("pull request Project membership and native issue link are read back", () => {
+  const calls = [];
+  let added = false;
+  let status = null;
+  const prUrl = "https://github.com/thekntl/example/pull/17";
+  const fakeGh = (args) => {
+    calls.push(args);
+    if (args[1] === "item-add") {
+      added = true;
+      return JSON.stringify({ id: "PVTI_pr" });
+    }
+    if (args[1] === "item-edit") {
+      status = "In review";
+      return "";
+    }
+    return JSON.stringify({
+      items: added
+        ? [{ id: "PVTI_pr", content: { url: prUrl }, status }]
+        : [],
+    });
+  };
+
+  addPullRequestToProject(projectConfig, prUrl, fakeGh);
+  assert.deepEqual(
+    validatePullRequestReadback(
+      {
+        number: 17,
+        url: prUrl,
+        closingIssuesReferences: [{ number: 42 }],
+        milestone: {
+          title: "MVP public launch — 2026-08-02",
+          dueOn: "2026-08-02T23:59:59Z",
+        },
+        projectItems: [
+          {
+            title: "Example — MVP Launch",
+            status: { name: "In review" },
+          },
+        ],
+      },
+      42,
+      projectConfig,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    calls.map((args) => args.slice(0, 2)),
+    [
+      ["project", "item-list"],
+      ["project", "item-add"],
+      ["project", "item-list"],
+      ["project", "item-edit"],
+      ["project", "item-list"],
+    ],
+  );
+});
+
+test("pull request readback rejects milestone drift", () => {
+  assert.match(
+    validatePullRequestReadback(
+      {
+        number: 17,
+        closingIssuesReferences: [{ number: 42 }],
+        milestone: null,
+        projectItems: [
+          {
+            title: "Example — MVP Launch",
+            status: { name: "In review" },
+          },
+        ],
+      },
+      42,
+      { ...projectConfig, milestoneTitle: "MVP public launch — 2026-08-02" },
+    ).join("\n"),
+    /milestone/,
+  );
+});
+
+test("claim-time planning failure records blocked state before propagating", () => {
+  let recordedMessage;
+  assert.throws(
+    () => recoverFailedClaim(
+      new Error("Project Status readback failed"),
+      (message) => {
+        recordedMessage = message;
+      },
+    ),
+    /Project Status readback failed/,
+  );
+  assert.match(recordedMessage, /Claim-time native planning failure/);
+});
+
+test("blocked claim recovery verifies labels, Project Status, contract, assignee, and lease", () => {
+  const releasedIssue = {
+    number: 42,
+    labels: [{ name: "blocked" }],
+    assignees: [],
+    projectItems: [
+      {
+        title: "Example — MVP Launch",
+        status: { name: "Blocked" },
+      },
+    ],
+    body: `<!-- indie-mvp-loop
+${JSON.stringify({ claimed_by: null })}
+-->`,
+  };
+  const releasedLease = {
+    id: 99,
+    body: `<!-- indie-mvp-claim
+${JSON.stringify({
+  schema_version: 1,
+  run_id: "run-1",
+  token: "token-1",
+  status: "released",
+})}
+-->`,
+  };
+  const config = {
+    ...projectConfig,
+    readyLabel: "ready-for-agent",
+    blockedLabel: "blocked",
+    claimLabel: "loop-claimed",
+  };
+  const lease = {
+    commentId: 99,
+    runId: "run-1",
+    token: "token-1",
+  };
+
+  assert.deepEqual(
+    validateClaimReleaseReadback(
+      releasedIssue,
+      releasedLease,
+      config,
+      "loop-agent",
+      lease,
+    ),
+    [],
+  );
+  assert.deepEqual(validateBlockedStateReadback(releasedIssue, config), []);
+  assert.match(
+    validateClaimReleaseReadback(
+      {
+        ...releasedIssue,
+        labels: [
+          { name: "blocked" },
+          { name: "ready-for-agent" },
+          { name: "loop-claimed" },
+        ],
+        assignees: [{ login: "loop-agent" }],
+        body: releasedIssue.body.replace('"claimed_by":null', '"claimed_by":"loop-agent"'),
+      },
+      { ...releasedLease, body: releasedLease.body.replace("released", "active") },
+      config,
+      "loop-agent",
+      lease,
+    ).join("\n"),
+    /ready-for-agent|loop-claimed|assignee|claimed_by|lease/,
+  );
+  assert.match(
+    validateBlockedStateReadback(
+      {
+        ...releasedIssue,
+        labels: [{ name: "ready-for-agent" }],
+        projectItems: [
+          {
+            title: "Example — MVP Launch",
+            status: { name: "Ready" },
+          },
+        ],
+      },
+      config,
+    ).join("\n"),
+    /blocked|ready-for-agent|Project Status/,
   );
 });

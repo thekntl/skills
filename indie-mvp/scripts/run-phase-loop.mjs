@@ -14,11 +14,17 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 import {
+  collectLaunchProjectReadback,
+  issueTypeReadbackArgs,
   readJson,
+  milestoneReadbackErrors,
+  projectStatusName,
   resolveSafePath,
   runSafeChecks,
   validateFrontierSnapshot,
   validateLaunchGateEvidence,
+  validateLaunchProjectReadback,
+  validateIssueTypeReadback,
   validateSingleIssueSnapshot,
   validateLoopConfig,
   validateSafeChecks,
@@ -83,6 +89,16 @@ let runtimeTools;
 
 function fail(message) {
   throw new Error(message);
+}
+
+export function recoverFailedClaim(error, recordBlocked) {
+  const message = `Claim-time native planning failure: ${error.message}`;
+  try {
+    recordBlocked(message);
+  } catch (recoveryError) {
+    fail(`${message}; blocked-state recovery failed: ${recoveryError.message}`);
+  }
+  fail(message);
 }
 
 function requireText(value, name) {
@@ -336,7 +352,23 @@ function gh(args, options = {}) {
 }
 
 function issueFields() {
-  return "number,title,state,url,body,labels,assignees,blockedBy";
+  return [
+    "number",
+    "title",
+    "state",
+    "url",
+    "body",
+    "labels",
+    "assignees",
+    "blockedBy",
+    "blocking",
+    "milestone",
+    "parent",
+    "projectItems",
+    "issueType",
+    "subIssuesSummary",
+    "closedByPullRequestsReferences",
+  ].join(",");
 }
 
 function readLiveIssue(config, number) {
@@ -374,6 +406,138 @@ function readLiveFrontier(config) {
   );
 }
 
+const PROJECT_STATUS_NAMES = Object.freeze({
+  ready: "Ready",
+  inProgress: "In progress",
+  inReview: "In review",
+  blocked: "Blocked",
+});
+
+function projectItems(config, runGh = gh) {
+  if (config.launchProject.mode === "tiny-skip") return [];
+  const snapshot = JSON.parse(
+    runGh([
+      "project",
+      "item-list",
+      String(config.launchProject.number),
+      "--owner",
+      config.launchProject.owner,
+      "--limit",
+      "1000",
+      "--format",
+      "json",
+    ]),
+  );
+  if (!Array.isArray(snapshot.items)) {
+    fail("launch Project item readback has an unsupported shape");
+  }
+  if (Number.isInteger(snapshot.totalCount) &&
+      snapshot.totalCount > snapshot.items.length) {
+    fail("launch Project item readback is truncated");
+  }
+  return snapshot.items;
+}
+
+function itemContentUrl(item) {
+  return item?.content?.url ?? item?.url ?? null;
+}
+
+function projectItemForUrl(config, url, runGh = gh) {
+  return projectItems(config, runGh).find((item) => itemContentUrl(item) === url);
+}
+
+function issueTypeSnapshot(config, runGh = gh) {
+  return JSON.parse(runGh(issueTypeReadbackArgs(config)));
+}
+
+export function updateProjectStatus(config, url, statusKey, runGh = gh) {
+  if (config.launchProject.mode === "tiny-skip") return null;
+  const expectedStatus = PROJECT_STATUS_NAMES[statusKey];
+  const optionId = config.launchProject.statusOptionIds[statusKey];
+  if (!expectedStatus || !optionId) {
+    fail(`unsupported launch Project Status transition: ${statusKey}`);
+  }
+  const before = projectItemForUrl(config, url, runGh);
+  if (!before?.id) {
+    fail(`launch Project membership is missing for ${url}`);
+  }
+  runGh([
+    "project",
+    "item-edit",
+    "--id",
+    before.id,
+    "--project-id",
+    config.launchProject.id,
+    "--field-id",
+    config.launchProject.statusFieldId,
+    "--single-select-option-id",
+    optionId,
+  ]);
+  const after = projectItemForUrl(config, url, runGh);
+  const actualStatus = projectStatusName(after);
+  if (!after?.id || actualStatus !== expectedStatus) {
+    fail(
+      `launch Project Status readback for ${url} must be ${expectedStatus}, ` +
+      `found ${actualStatus ?? "missing"}`,
+    );
+  }
+  return after;
+}
+
+export function addPullRequestToProject(config, url, runGh = gh) {
+  if (config.launchProject.mode === "tiny-skip") return null;
+  if (!projectItemForUrl(config, url, runGh)) {
+    runGh([
+      "project",
+      "item-add",
+      String(config.launchProject.number),
+      "--owner",
+      config.launchProject.owner,
+      "--url",
+      url,
+      "--format",
+      "json",
+    ]);
+  }
+  return updateProjectStatus(config, url, "inReview", runGh);
+}
+
+export function validatePullRequestReadback(
+  pullRequest,
+  issueNumber,
+  config,
+) {
+  const errors = [];
+  if (!(pullRequest.closingIssuesReferences ?? []).some(
+    ({ number }) => number === issueNumber,
+  )) {
+    errors.push(`Pull request #${pullRequest.number} does not natively close #${issueNumber}`);
+  }
+  for (const error of milestoneReadbackErrors(pullRequest.milestone, config)) {
+    errors.push(`Pull request #${pullRequest.number} ${error}`);
+  }
+  if (config.launchProject.mode === "required") {
+    const projectItem = (pullRequest.projectItems ?? []).find(
+      ({ title }) => title === config.launchProject.title,
+    );
+    if (!projectItem) {
+      errors.push(
+        `Pull request #${pullRequest.number} is missing launch Project ` +
+        config.launchProject.title,
+      );
+    } else {
+      const status = projectStatusName(projectItem);
+      if (status !== "In review") {
+        errors.push(
+          `Pull request #${pullRequest.number} Project Status must be In review, ` +
+          `found ${status ?? "unset"}`,
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 function writeIssueComment(loopRoot, config, issueNumber, stem, markdown) {
   const commentsRoot = resolveSafePath(loopRoot, "state/comments", "comment directory");
   mkdirSync(commentsRoot, { recursive: true });
@@ -390,15 +554,22 @@ function writeIssueComment(loopRoot, config, issueNumber, stem, markdown) {
   ]);
 }
 
+function parseLoopContract(body) {
+  const match = (body ?? "").match(
+    /<!--\s*indie-mvp-loop\s*([\s\S]*?)-->/i,
+  );
+  if (!match) fail("issue contract is missing");
+  try {
+    return JSON.parse(match[1]);
+  } catch (error) {
+    fail(`issue contract is invalid: ${error.message}`);
+  }
+}
+
 function bodyWithClaim(body, claimedBy) {
   const match = body.match(/<!--\s*indie-mvp-loop\s*([\s\S]*?)-->/i);
   if (!match) fail("cannot synchronize claim because the issue contract is missing");
-  let contract;
-  try {
-    contract = JSON.parse(match[1]);
-  } catch (error) {
-    fail(`cannot synchronize invalid issue contract: ${error.message}`);
-  }
+  const contract = parseLoopContract(body);
   contract.claimed_by = claimedBy;
   const replacement = `<!-- indie-mvp-loop\n${JSON.stringify(contract, null, 2)}\n-->`;
   return body.replace(match[0], replacement);
@@ -448,6 +619,74 @@ function parseClaimLease(comment) {
   }
 }
 
+function labelNames(issue) {
+  return new Set(
+    (issue.labels ?? []).map((label) =>
+      typeof label === "string" ? label : label.name,
+    ),
+  );
+}
+
+export function validateClaimReleaseReadback(
+  issue,
+  comment,
+  config,
+  login,
+  expectedLease,
+) {
+  const errors = [];
+  const labels = labelNames(issue);
+  if (labels.has(config.readyLabel)) {
+    errors.push(`Issue #${issue.number} still has ${config.readyLabel}`);
+  }
+  if (labels.has(config.claimLabel)) {
+    errors.push(`Issue #${issue.number} still has ${config.claimLabel}`);
+  }
+  if ((issue.assignees ?? []).some(({ login: assignee }) => assignee === login)) {
+    errors.push(`Issue #${issue.number} still has loop assignee ${login}`);
+  }
+  try {
+    if (parseLoopContract(issue.body).claimed_by !== null) {
+      errors.push(`Issue #${issue.number} contract claimed_by is not cleared`);
+    }
+  } catch (error) {
+    errors.push(`Issue #${issue.number} ${error.message}`);
+  }
+  const lease = parseClaimLease(comment);
+  if (!lease ||
+      lease.commentId !== expectedLease.commentId ||
+      lease.runId !== expectedLease.runId ||
+      lease.token !== expectedLease.token ||
+      lease.status !== "released") {
+    errors.push(`Issue #${issue.number} claim lease was not read back as released`);
+  }
+  return errors;
+}
+
+export function validateBlockedStateReadback(issue, config) {
+  const errors = [];
+  const labels = labelNames(issue);
+  if (!labels.has(config.blockedLabel)) {
+    errors.push(`Issue #${issue.number} is missing ${config.blockedLabel}`);
+  }
+  if (labels.has(config.readyLabel)) {
+    errors.push(`Issue #${issue.number} still has ${config.readyLabel}`);
+  }
+  if (config.launchProject.mode === "required") {
+    const projectItem = (issue.projectItems ?? []).find(
+      ({ title }) => title === config.launchProject.title,
+    );
+    const status = projectStatusName(projectItem);
+    if (status !== "Blocked") {
+      errors.push(
+        `Issue #${issue.number} Project Status must be Blocked, ` +
+        `found ${status ?? "missing"}`,
+      );
+    }
+  }
+  return errors;
+}
+
 export function selectClaimWinner(comments) {
   const active = comments
     .map(parseClaimLease)
@@ -472,6 +711,16 @@ function updateClaimLease(config, lease, status) {
     "-f",
     `body=${claimLeaseBody(lease.runId, lease.token, status)}`,
   ]);
+}
+
+function readClaimLease(config, lease) {
+  const [owner, repository] = config.repository.split("/");
+  return JSON.parse(
+    gh([
+      "api",
+      `repos/${owner}/${repository}/issues/comments/${lease.commentId}`,
+    ]),
+  );
 }
 
 function createClaimLease(loopRoot, config, issue, runId) {
@@ -573,6 +822,20 @@ function releaseClaim(loopRoot, config, issue, login, lease) {
   } catch (error) {
     errors.push(`GitHub claim lease release failed: ${error.message}`);
   }
+  try {
+    const readbackErrors = validateClaimReleaseReadback(
+      readLiveIssue(config, issue.number),
+      readClaimLease(config, lease),
+      config,
+      login,
+      lease,
+    );
+    if (readbackErrors.length) {
+      errors.push(`claim release readback failed: ${readbackErrors.join("; ")}`);
+    }
+  } catch (error) {
+    errors.push(`claim release readback failed: ${error.message}`);
+  }
   if (errors.length) fail(errors.join("; "));
 }
 
@@ -591,6 +854,7 @@ function markBlocked(loopRoot, config, issue, message, login, lease) {
       "--remove-label",
       config.readyLabel,
     ]);
+    updateProjectStatus(config, issue.url, "blocked");
     blockedRecorded = true;
   } catch (error) {
     errors.push(`blocked-state update failed: ${error.message}`);
@@ -615,6 +879,13 @@ function markBlocked(loopRoot, config, issue, message, login, lease) {
   if (blockedRecorded) {
     try {
       releaseClaim(loopRoot, config, issue, login, lease);
+      const readbackErrors = validateBlockedStateReadback(
+        readLiveIssue(config, issue.number),
+        config,
+      );
+      if (readbackErrors.length) {
+        fail(`blocked-state readback failed: ${readbackErrors.join("; ")}`);
+      }
     } catch (error) {
       errors.push(error.message);
     }
@@ -663,24 +934,19 @@ function claimIssue(loopRoot, config, issue, login, runId) {
       "claimed",
       bodyWithClaim(claimed.body ?? "", `${login}:${runId}:${lease.token}`),
     );
+    updateProjectStatus(config, issue.url, "inProgress");
   } catch (error) {
-    try {
-      updateClaimLease(config, lease, "released");
-      gh([
-        "issue",
-        "edit",
-        String(issue.number),
-        "--repo",
-        config.repository,
-        "--remove-assignee",
+    recoverFailedClaim(
+      error,
+      (message) => markBlocked(
+        loopRoot,
+        config,
+        claimed,
+        message,
         login,
-        "--remove-label",
-        config.claimLabel,
-      ]);
-    } catch {
-      // Leave any partial claim visible when cleanup cannot complete.
-    }
-    throw error;
+        lease,
+      ),
+    );
   }
   return {
     issue: readLiveIssue(config, issue.number),
@@ -744,10 +1010,12 @@ A missing or malformed stop record is treated as a global unsafe stop. Genuine b
 `;
 }
 
-function pullRequestBody(issue, result, config, askMattPrompt) {
+export function pullRequestBody(issue, result, config, askMattPrompt) {
   return `## Canonical issue
 
-Closes no issue automatically. Implements #${issue.number}: ${issue.title}
+Closes #${issue.number}
+
+Implements: ${issue.title}
 
 ## Why and user-visible outcome
 
@@ -957,6 +1225,21 @@ function runPhase(loopRoot) {
   if (liveFrontier.errors.length) {
     fail(`Unsafe live frontier:\n${liveFrontier.errors.join("\n")}`);
   }
+  const issueTypeErrors = validateIssueTypeReadback(
+    config,
+    issueTypeSnapshot(config),
+  );
+  if (issueTypeErrors.length) {
+    fail(`Unsafe live native issue types:\n${issueTypeErrors.join("\n")}`);
+  }
+  const liveProjectErrors = validateLaunchProjectReadback(
+    liveFrontier.selected,
+    config,
+    collectLaunchProjectReadback(config, (args) => JSON.parse(gh(args))),
+  );
+  if (liveProjectErrors.length) {
+    fail(`Unsafe live launch Project:\n${liveProjectErrors.join("\n")}`);
+  }
   const launchGateErrors = validateLaunchGateEvidence(
     liveFrontier.selected,
     config,
@@ -1145,6 +1428,8 @@ function runPhase(loopRoot) {
         branch,
         "--title",
         liveIssue.title,
+        "--milestone",
+        config.milestoneTitle,
         "--body-file",
         prBodyPath,
       ]);
@@ -1168,6 +1453,36 @@ function runPhase(loopRoot) {
         "--body-file",
         prBodyPath,
       ]);
+      updateProjectStatus(config, liveIssue.url, "inReview");
+      addPullRequestToProject(config, pr);
+      const pullRequestReadback = JSON.parse(
+        gh([
+          "pr",
+          "view",
+          pr,
+          "--repo",
+          config.repository,
+          "--json",
+          "number,url,closingIssuesReferences,milestone,projectItems",
+        ]),
+      );
+      const pullRequestErrors = validatePullRequestReadback(
+        pullRequestReadback,
+        liveIssue.number,
+        config,
+      );
+      const issueReadback = readLiveIssue(config, liveIssue.number);
+      if (!(issueReadback.closedByPullRequestsReferences ?? []).some(
+        ({ number }) => number === pullRequestReadback.number,
+      )) {
+        pullRequestErrors.push(
+          `Issue #${liveIssue.number} does not natively link pull request ` +
+          `#${pullRequestReadback.number}`,
+        );
+      }
+      if (pullRequestErrors.length) {
+        fail(`Unsafe pull-request readback:\n${pullRequestErrors.join("\n")}`);
+      }
       gh([
         "issue",
         "edit",

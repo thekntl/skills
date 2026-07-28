@@ -8,6 +8,7 @@ Status: canonical runtime skill specification.
 - Launch Timebox
 - Solo-Operator Constraint
 - Operating Model
+- GitHub Native Planning Contract
 - Confirmed Authoring Decisions
 - Technology Stack Decision Register
 - Provider Decision Register
@@ -81,6 +82,31 @@ Assume one indie developer owns product, engineering, design, marketing, release
 - Resolve scope conflicts in favor of the launch timebox and the product's smallest testable promise.
 
 **Plain-English summary:** Follow a standard route, record the work, and pause only at real crossroads.
+
+## GitHub Native Planning Contract
+
+Use every applicable native GitHub planning feature. Native metadata is canonical; body links may explain but never replace issue type, labels, confirmed assignee, parent/sub-issue, blocked-by/blocking, milestone, Project membership, linked pull request, or close state reason.
+
+Use this hierarchy:
+
+1. `Product Launch Map` is the parentless root.
+2. Phase issues are its native sub-issues.
+3. Decision, research, implementation, defect, and owner-action issues are native sub-issues of their owning phase.
+
+Use blocking relations only for real prerequisites. Create related issues first, wire all native relations second, then read every affected issue back. Do not mark the tracker ready or place affected work in `ready-for-agent` when an applicable mutation or readback fails.
+
+Use milestones for dated outcomes, not components:
+
+- `validate-first`: create `Demand validation — YYYY-MM-DD`; create `MVP public launch — YYYY-MM-DD` only after `GO` or `BUILD-TO-LEARN`.
+- `build-first` or `parallel`: create `MVP public launch — YYYY-MM-DD` at bootstrap.
+- Create `Post-launch stabilization — YYYY-MM-DD` only for committed scope and date.
+- Leave indefinite backlog unmilestoned. Never create Website, Creative, Backend, or other component milestones.
+
+Default to one `<PRODUCT> — MVP Launch` Project when there are at least six planned issues, multiple workstreams or repositories, or a shared dashboard is useful. Keep product, website, backend, creatives, release, and post-launch in this one Project; represent them with hierarchy, workstream metadata, and views. Skip Projects only for one map plus at most four child issues in one repository and document why. Split only at a durable ownership, access, cadence, backlog, or workflow boundary. Use a portfolio Project only for multiple independent products or teams.
+
+Add every launch issue and pull request explicitly; do not rely on Project auto-add. Use native fields plus one Project Status and the minimum useful views. Inspect capabilities first, prefer the connected GitHub integration for supported mutations, fall back to current `gh`, then current REST or GraphQL. Fail closed rather than silently degrading to body-only links.
+
+**Plain-English summary:** Build one verified native issue graph and one useful launch dashboard, not several disconnected lists.
 
 ## Confirmed Authoring Decisions
 

@@ -12,6 +12,8 @@
 
 Keep this marker synchronized with the confirmed route and verdict. For `build-first` or `parallel`, record the bootstrap clock and activate frontend. For `validate-first`, keep the clock `null` and frontend inactive until `GO` or `BUILD-TO-LEARN`, then record the fresh public-product clock and activate frontend.
 
+{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-TRACKER-READBACK.MD}}
+
 ## Launch contract
 
 - Codename: `{{CODENAME}}`

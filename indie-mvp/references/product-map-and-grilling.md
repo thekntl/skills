@@ -44,12 +44,14 @@ Use [master-map.md](../assets/github/master-map.md) and [phase-issue.md](../asse
 Use issues as the durable session surface:
 
 - one master launch map;
-- one canonical issue per phase;
+- one canonical issue per phase, attached natively as a sub-issue of the map;
 - separate decision/research issues only when they need independent evidence or block multiple tasks;
-- one focused issue per implementation unit;
+- one focused issue per implementation unit, attached natively to its owning phase;
 - one PR per canonical implementation issue unless a tight bundle is justified.
 
-Update the master map after a phase gate changes. Avoid invisible agent-only phase state.
+Use native blocked-by/blocking only for real prerequisites; hierarchy communicates scope, not order. Apply the route milestone and launch-Project membership from [github-planning.md](github-planning.md). Create all issues first, wire relations second, then read back parent, sub-issue, dependency, milestone, Project, type, label, and assignee state.
+
+Update the master map after native tracker state and a phase gate change. Avoid invisible agent-only phase state or body-only relationship substitutes.
 
 ## Batch Grill protocol
 

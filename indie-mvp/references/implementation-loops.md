@@ -19,6 +19,7 @@ Generate a loop only when the active phase's decisions are confirmed or delibera
 An issue is `ready-for-agent` only when it contains:
 
 - one canonical problem and user outcome;
+- a verified native parent phase, applicable milestone, issue type, labels, and launch-Project membership;
 - included scope and non-goals;
 - acceptance criteria;
 - affected surfaces and linked decisions;
@@ -57,6 +58,8 @@ Replace every `{{PLACEHOLDER}}` and configure the issue labels. Repository-nativ
 
 Every implementation issue must include the machine-readable `indie-mvp-loop` JSON contract from [implementation-issue.md](../assets/github/implementation-issue.md). Keep it synchronized with native labels, assignments, blocking links, decisions, and owner boundaries.
 
+Before generating the package, run the mutation and readback protocol in [github-planning.md](github-planning.md). Project membership is required when the launch Project exists. A body link, cached issue-creation response, or unchecked Project auto-add does not satisfy the entry gate.
+
 ## Preflight
 
 The generated preflight must fail clearly when:
@@ -67,6 +70,7 @@ The generated preflight must fail clearly when:
 - agent arguments, enforcement evidence, or runtime guard differ from their bound SHA-256 values, or the owner approval is missing, stale, future-dated, expired, or longer than 30 days;
 - `docs/glossary.html` is stale;
 - a selected issue is not open, unassigned, active-phase, and labeled `ready-for-agent`;
+- a selected issue lacks its configured native phase parent, dated milestone, required launch-Project membership, or `Ready` Project Status;
 - the machine-readable issue contract is absent, malformed, or inconsistent with live labels, assignments, or native `blockedBy` dependencies;
 - a frontend issue's validation route, verdict, clock, or activation state differs from the live Product Launch Map gate;
 - the live query reaches its configured frontier limit, because unseen issues would escape validation;
@@ -105,7 +109,7 @@ For each cycle:
 5. Implement only its acceptance criteria.
 6. Run required verification.
 7. Commit intentionally and create/update the focused PR.
-8. Record evidence on the issue.
+8. Link the pull request natively, update Project Status, and read back both before recording evidence on the issue.
 9. Apply the execution-mode Ask Matt rule below.
 10. On bounded failure, record evidence, mark blocked/retryable, release unsafe claims, and continue only with an independent issue.
 
@@ -145,6 +149,7 @@ Before the owner runs a loop, explain in Turkish:
 - safe stop and resume;
 - log/state/report locations;
 - branch, PR, and blocked-ticket destinations;
+- launch Project, milestone, hierarchy, and native dependency destinations;
 - work that remains owner-run.
 
 Select and verify the actual local toolchain and agent executables, immutable digests, direct CLI arguments, Git execution fingerprint, and runtime guard while generating the repository-specific loop; never guess them into an overnight run. `run-phase.sh` is otherwise complete: it performs preflight, live revalidation, exclusive claim, isolated worktree/branch creation, direct agent spawn, static-safe checks, commit/push, pull-request and issue evidence, bounded failure handling, resumable state, and the final report.

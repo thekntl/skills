@@ -13,6 +13,7 @@ const required = [
   "SKILL.md",
   "agents/openai.yaml",
   "references/operating-contract.md",
+  "references/github-planning.md",
   "references/product-map-and-grilling.md",
   "references/fixed-stack.md",
   "references/phase-bootstrap.md",
@@ -26,6 +27,8 @@ const required = [
   "assets/github/master-map.md",
   "assets/github/phase-issue.md",
   "assets/github/implementation-issue.md",
+  "assets/github/native-tracker-readback.md",
+  "assets/github/native-pull-request-readback.md",
   "assets/github/pull-request.md",
   "assets/github/ask-matt-handoff.md",
   "assets/legal/data-provider-inventory.md",
@@ -59,6 +62,7 @@ const required = [
   "scripts/loop-safety.mjs",
   "scripts/loop-safety.test.mjs",
   "scripts/loop-contract.mjs",
+  "scripts/github-planning-contract.test.mjs",
   "scripts/runtime-environment-policy.mjs",
   "scripts/runtime-environment-policy.test.mjs",
   "scripts/git-execution-fingerprint.mjs",
@@ -104,6 +108,16 @@ const implementationIssue = readFileSync(
   "utf8",
 );
 const masterMap = readFileSync(resolve(root, "assets/github/master-map.md"), "utf8");
+const phaseIssue = readFileSync(resolve(root, "assets/github/phase-issue.md"), "utf8");
+const nativeTrackerReadback = readFileSync(
+  resolve(root, "assets/github/native-tracker-readback.md"),
+  "utf8",
+);
+const nativePullRequestReadback = readFileSync(
+  resolve(root, "assets/github/native-pull-request-readback.md"),
+  "utf8",
+);
+const pullRequest = readFileSync(resolve(root, "assets/github/pull-request.md"), "utf8");
 const demandExperiment = readFileSync(
   resolve(root, "assets/marketing/demand-validation-experiment.md"),
   "utf8",
@@ -138,6 +152,30 @@ if (!skill.includes("three to seven days")) errors.push("SKILL.md misses launch 
 if (!skill.includes("Docker")) errors.push("SKILL.md misses Docker boundary");
 if (!skill.includes("Ask Matt")) errors.push("SKILL.md misses Ask Matt closeout");
 if (!skill.includes("Demand validation")) errors.push("SKILL.md misses optional demand-validation route");
+if (!skill.includes("github-planning.md") ||
+    !skill.includes("applicable native GitHub planning feature")) {
+  errors.push("SKILL.md must load and enforce the native GitHub planning contract");
+}
+for (const [name, template] of [
+  ["master map", masterMap],
+  ["phase issue", phaseIssue],
+  ["implementation issue", implementationIssue],
+]) {
+  if (!template.includes(
+    "{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-TRACKER-READBACK.MD}}",
+  )) {
+    errors.push(`${name} template must insert the canonical native tracker readback`);
+  }
+}
+if (!nativeTrackerReadback.includes("## Native tracker readback") ||
+    !nativeTrackerReadback.includes("Native GitHub state is canonical")) {
+  errors.push("Canonical native tracker readback asset is incomplete");
+}
+if (!pullRequest.includes(
+  "{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-PULL-REQUEST-READBACK.MD}}",
+) || !nativePullRequestReadback.includes("Closing issue:")) {
+  errors.push("Pull-request template must insert its canonical native readback");
+}
 if (!demandValidation.includes("SetupIntent")) {
   errors.push("Demand-validation reference must disclose the current SetupIntent behavior");
 }
@@ -303,6 +341,7 @@ const longStructuredFiles = [
   resolve(root, "..", "indie-mvp-skill-brief.md"),
   ...[
     "references/operating-contract.md",
+    "references/github-planning.md",
     "references/product-map-and-grilling.md",
     "references/fixed-stack.md",
     "references/phase-bootstrap.md",
