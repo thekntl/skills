@@ -1,5 +1,7 @@
 # {{PHASE}} — {{PRODUCT_NAME}}
 
+{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-TRACKER-READBACK.MD}}
+
 ## Outcome
 
 {{PHASE_OUTCOME}}
@@ -52,6 +54,8 @@
 - [ ] {{RUNTIME_EVIDENCE}}
 
 ## Linked work
+
+These lists explain the native tracker graph; they do not replace it.
 
 - Ready for agents: {{READY_ISSUES}}
 - Owner actions: {{OWNER_ISSUES}}

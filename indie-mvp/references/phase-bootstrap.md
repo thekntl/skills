@@ -67,14 +67,18 @@ For `parallel`, keep both clocks visible: demand evidence may change or stop uns
 
 Create one private repository under `thekntl`, using the codename-derived slug after confirming naming does not collide or disclose sensitive information.
 
+Execute the discovery, create, wire, readback, and publish protocol in [github-planning.md](github-planning.md). Keep that file authoritative for hierarchy, dependencies, milestones, Projects, metadata, and failure behavior.
+
 Add:
 
 - master launch map from `assets/github/master-map.md`;
 - phase issues from `assets/github/phase-issue.md`;
 - `CONTEXT.md`, `docs/GLOSSARY.md`, and generated `docs/glossary.html`;
-- launch labels and milestones appropriate to the repository;
+- the applicable native tracker objects required by the GitHub planning contract;
 - fixed stack and hard guardrails in repository agent instructions;
 - owner-action issues for credentials, verification, payment, Docker runtime, and other human boundaries.
+
+Record the selected validation route before applying its dated commitment. Resolve every template's native readback block only after the canonical protocol succeeds.
 
 Suggested labels:
 
@@ -109,6 +113,7 @@ Close bootstrap when:
 - validation route, clock boundary, and decision gate are visible;
 - Apple keyword clusters/search intents are recorded or explicitly marked missing;
 - repository and master map exist;
+- native hierarchy, dependencies, issue metadata, route milestone, and required Project membership pass readback;
 - glossary sources and build command exist;
 - for `build-first` or `parallel`, the first frontend phase issue is open and no missing input prevents its first target-runtime prototype;
 - for `validate-first` before `GO` or `BUILD-TO-LEARN`, the demand-validation phase issue is open while the frontend phase remains planned/inactive and carries no delivery countdown or prototype-readiness pressure;

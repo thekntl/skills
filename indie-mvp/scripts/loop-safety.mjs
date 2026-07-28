@@ -36,6 +36,11 @@ const CONFIG_KEYS = new Set([
   "schemaVersion",
   "repository",
   "launchMapIssueUrl",
+  "phaseIssueNumber",
+  "milestoneTitle",
+  "milestoneDueDate",
+  "issueType",
+  "launchProject",
   "phaseLabel",
   "readyLabel",
   "blockedLabel",
@@ -115,6 +120,31 @@ const LAUNCH_GATE_KEYS = new Set([
   "public_product_clock_started_at",
   "frontend_delivery_active",
 ]);
+const REQUIRED_PROJECT_KEYS = new Set([
+  "mode",
+  "owner",
+  "number",
+  "id",
+  "title",
+  "statusFieldId",
+  "statusOptionIds",
+]);
+const REQUIRED_ISSUE_TYPE_KEYS = new Set(["mode", "name"]);
+const UNAVAILABLE_ISSUE_TYPE_KEYS = new Set(["mode", "reason"]);
+const PROJECT_STATUS_OPTION_KEYS = new Set([
+  "ready",
+  "inProgress",
+  "inReview",
+  "blocked",
+]);
+const TINY_PROJECT_SKIP_KEYS = new Set([
+  "mode",
+  "owner",
+  "title",
+  "mapChildCount",
+  "repositoryCount",
+  "reason",
+]);
 const PROHIBITED_GIT_CONFIG_PATTERN = new RegExp(
   "^(alias\\..*|credential\\..*|filter\\..*\\.(clean|smudge|process|required)|" +
     "diff\\..*\\.(command|textconv)|merge\\..*\\.driver|" +
@@ -143,6 +173,14 @@ function requireString(value, name) {
 function requireInteger(value, name, minimum, maximum) {
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
     fail(`${name} must be an integer from ${minimum} through ${maximum}`);
+  }
+}
+
+function requireDate(value, name) {
+  requireString(value, name);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) {
+    fail(`${name} must be a real date in YYYY-MM-DD form`);
   }
 }
 
@@ -180,6 +218,227 @@ export function resolveSafePath(root, path, name) {
   return absolute;
 }
 
+export function projectStatusName(projectItem) {
+  return typeof projectItem?.status === "string"
+    ? projectItem.status
+    : projectItem?.status?.name;
+}
+
+export function milestoneReadbackErrors(milestone, config) {
+  const errors = [];
+  if (milestone?.title !== config.milestoneTitle) {
+    errors.push(`milestone must be ${config.milestoneTitle}`);
+  }
+  if (typeof milestone?.dueOn !== "string" ||
+      milestone.dueOn.slice(0, 10) !== config.milestoneDueDate) {
+    errors.push(`milestone due date must be ${config.milestoneDueDate}`);
+  }
+  return errors;
+}
+
+function issueRepository(url) {
+  const match = typeof url === "string"
+    ? url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/\d+$/)
+    : null;
+  if (!match) fail(`launch issue has a non-canonical GitHub URL: ${String(url)}`);
+  return `${match[1]}/${match[2]}`;
+}
+
+export function collectLaunchIssueTree(config, readIssue) {
+  const queue = [config.launchMapIssueUrl];
+  const queued = new Set(queue);
+  const issues = [];
+
+  while (queue.length) {
+    const requestedUrl = queue.shift();
+    const issue = readIssue(requestedUrl);
+    if (!issue || typeof issue !== "object" || Array.isArray(issue)) {
+      fail(`launch issue readback is missing for ${requestedUrl}`);
+    }
+    if (issue.url !== requestedUrl) {
+      fail(`launch issue readback URL does not match ${requestedUrl}`);
+    }
+    if (!Array.isArray(issue.subIssues) ||
+        !Number.isInteger(issue.subIssuesSummary?.total)) {
+      fail(`launch issue hierarchy readback is incomplete for ${requestedUrl}`);
+    }
+    if (issue.subIssuesSummary.total !== issue.subIssues.length) {
+      fail(`launch issue hierarchy readback is truncated for ${requestedUrl}`);
+    }
+    issues.push({ number: issue.number, url: issue.url });
+    for (const child of issue.subIssues) {
+      if (typeof child?.url !== "string") {
+        fail(`launch issue hierarchy contains a child without a canonical URL`);
+      }
+      if (queued.has(child.url)) {
+        fail(`launch issue hierarchy is not a unique tree at ${child.url}`);
+      }
+      queued.add(child.url);
+      queue.push(child.url);
+    }
+  }
+
+  return {
+    rootUrl: config.launchMapIssueUrl,
+    issues,
+    repositoryCount: new Set(issues.map(({ url }) => issueRepository(url))).size,
+  };
+}
+
+export function collectLaunchProjectReadback(config, runJson) {
+  if (config.launchProject.mode === "required") {
+    return {
+      project: runJson([
+        "project",
+        "view",
+        String(config.launchProject.number),
+        "--owner",
+        config.launchProject.owner,
+        "--format",
+        "json",
+      ]),
+      items: runJson([
+        "project",
+        "item-list",
+        String(config.launchProject.number),
+        "--owner",
+        config.launchProject.owner,
+        "--limit",
+        "1000",
+        "--format",
+        "json",
+      ]),
+    };
+  }
+  return {
+    projects: runJson([
+      "project",
+      "list",
+      "--owner",
+      config.launchProject.owner,
+      "--limit",
+      "1000",
+      "--format",
+      "json",
+    ]),
+    launchTree: collectLaunchIssueTree(
+      config,
+      (url) => runJson([
+        "issue",
+        "view",
+        url,
+        "--json",
+        "number,url,subIssues,subIssuesSummary",
+      ]),
+    ),
+  };
+}
+
+export function validateIssueTypeReadback(config, readback) {
+  const errors = [];
+  const issueTypes = Array.isArray(readback) && readback.every(Array.isArray)
+    ? readback.flat()
+    : readback;
+  if (!Array.isArray(issueTypes) ||
+      issueTypes.some(({ name } = {}) => typeof name !== "string" || name.trim() === "")) {
+    return ["native issue type capability readback has an unsupported shape"];
+  }
+  if (config.issueType.mode === "required" &&
+      !issueTypes.some(({ name }) => name === config.issueType.name)) {
+    errors.push(
+      `configured native issue type ${config.issueType.name} is unavailable in the live repository`,
+    );
+  }
+  if (config.issueType.mode === "unavailable" && issueTypes.length) {
+    errors.push(
+      `native issue types are available in the live repository: ` +
+      issueTypes.map(({ name }) => name).join(", "),
+    );
+  }
+  return errors;
+}
+
+export function issueTypeReadbackArgs(config) {
+  const [owner, repository] = config.repository.split("/");
+  return [
+    "api",
+    "--hostname",
+    "github.com",
+    "-H",
+    "X-GitHub-Api-Version: 2026-03-10",
+    "--paginate",
+    "--slurp",
+    `repos/${owner}/${repository}/issue-types?per_page=100`,
+  ];
+}
+
+export function validateLaunchProjectReadback(issues, config, snapshots) {
+  const errors = [];
+  if (config.launchProject.mode === "required") {
+    const project = snapshots.project;
+    if (project?.id !== config.launchProject.id ||
+        project?.number !== config.launchProject.number ||
+        project?.title !== config.launchProject.title) {
+      errors.push("launch Project identity does not match configured node, number, and title");
+    }
+    const items = snapshots.items;
+    if (!Array.isArray(items?.items)) {
+      errors.push("launch Project item readback has an unsupported shape");
+      return errors;
+    }
+    if (Number.isInteger(items.totalCount) && items.totalCount > items.items.length) {
+      errors.push("launch Project item readback is truncated");
+    }
+    for (const issue of issues) {
+      const item = items.items.find(
+        (candidate) =>
+          (candidate?.content?.url ?? candidate?.url) === issue.url,
+      );
+      if (!item) {
+        errors.push(`Issue #${issue.number} is missing configured launch Project membership`);
+      } else if (projectStatusName(item) !== "Ready") {
+        errors.push(
+          `Issue #${issue.number} configured launch Project Status must be Ready, ` +
+          `found ${projectStatusName(item) ?? "unset"}`,
+        );
+      }
+    }
+    return errors;
+  }
+
+  const projects = snapshots.projects;
+  if (!Array.isArray(projects?.projects)) {
+    errors.push("launch Project list readback has an unsupported shape");
+    return errors;
+  }
+  if (Number.isInteger(projects.totalCount) &&
+      projects.totalCount > projects.projects.length) {
+    errors.push("launch Project list readback is truncated");
+  }
+  if (projects.projects.some(({ title }) => title === config.launchProject.title)) {
+    errors.push(`launch Project ${config.launchProject.title} already exists`);
+  }
+  const launchTree = snapshots.launchTree;
+  const liveChildCount = Array.isArray(launchTree?.issues)
+    ? launchTree.issues.length - 1
+    : null;
+  if (launchTree?.rootUrl !== config.launchMapIssueUrl) {
+    errors.push("tiny Project skip launch tree is not rooted at the configured map");
+  }
+  if (!Number.isInteger(liveChildCount) ||
+      liveChildCount !== config.launchProject.mapChildCount ||
+      liveChildCount > 4) {
+    errors.push(
+      "tiny Project skip requires a complete live launch tree with at most four child issues",
+    );
+  }
+  if (launchTree?.repositoryCount !== config.launchProject.repositoryCount ||
+      launchTree?.repositoryCount !== 1) {
+    errors.push("tiny Project skip requires the complete live launch tree in one repository");
+  }
+  return errors;
+}
+
 export function validateLoopConfig(config) {
   requireExactKeys(config, CONFIG_KEYS, "config");
 
@@ -197,6 +456,64 @@ export function validateLoopConfig(config) {
   if (!config.launchMapIssueUrl.startsWith(launchMapPrefix) ||
       !/^\d+$/.test(config.launchMapIssueUrl.slice(launchMapPrefix.length))) {
     fail("launchMapIssueUrl must be the canonical issue in repository");
+  }
+  requireInteger(config.phaseIssueNumber, "phaseIssueNumber", 1, Number.MAX_SAFE_INTEGER);
+  requireString(config.milestoneTitle, "milestoneTitle");
+  requireDate(config.milestoneDueDate, "milestoneDueDate");
+  if (!config.issueType || typeof config.issueType !== "object" ||
+      Array.isArray(config.issueType)) {
+    fail("issueType must be required or explicitly unavailable");
+  }
+  if (config.issueType.mode === "required") {
+    requireExactKeys(config.issueType, REQUIRED_ISSUE_TYPE_KEYS, "issueType");
+    requireString(config.issueType.name, "issueType.name");
+  } else if (config.issueType.mode === "unavailable") {
+    requireExactKeys(config.issueType, UNAVAILABLE_ISSUE_TYPE_KEYS, "issueType");
+    requireString(config.issueType.reason, "issueType.reason");
+  } else {
+    fail("issueType.mode must be required or unavailable");
+  }
+  if (!config.launchProject || typeof config.launchProject !== "object" ||
+      Array.isArray(config.launchProject)) {
+    fail("launchProject must be a required Project or an explicit tiny skip");
+  }
+  if (config.launchProject.mode === "required") {
+    requireExactKeys(config.launchProject, REQUIRED_PROJECT_KEYS, "launchProject");
+    for (const key of REQUIRED_PROJECT_KEYS) {
+      if (!(key in config.launchProject)) fail(`launchProject is missing ${key}`);
+    }
+    for (const key of ["owner", "id", "title", "statusFieldId"]) {
+      requireString(config.launchProject[key], `launchProject.${key}`);
+    }
+    requireInteger(
+      config.launchProject.number,
+      "launchProject.number",
+      1,
+      Number.MAX_SAFE_INTEGER,
+    );
+    requireExactKeys(
+      config.launchProject.statusOptionIds,
+      PROJECT_STATUS_OPTION_KEYS,
+      "launchProject.statusOptionIds",
+    );
+    for (const key of PROJECT_STATUS_OPTION_KEYS) {
+      if (!(key in config.launchProject.statusOptionIds)) {
+        fail(`launchProject.statusOptionIds is missing ${key}`);
+      }
+      requireString(
+        config.launchProject.statusOptionIds[key],
+        `launchProject.statusOptionIds.${key}`,
+      );
+    }
+  } else if (config.launchProject.mode === "tiny-skip") {
+    requireExactKeys(config.launchProject, TINY_PROJECT_SKIP_KEYS, "launchProject");
+    requireString(config.launchProject.owner, "launchProject.owner");
+    requireString(config.launchProject.title, "launchProject.title");
+    requireInteger(config.launchProject.mapChildCount, "launchProject.mapChildCount", 0, 4);
+    requireInteger(config.launchProject.repositoryCount, "launchProject.repositoryCount", 1, 1);
+    requireString(config.launchProject.reason, "launchProject.reason");
+  } else {
+    fail("launchProject.mode must be required or tiny-skip");
   }
   for (const key of [
     "phaseLabel",
@@ -355,6 +672,30 @@ function validateIssue(issue, config) {
   );
   if (otherPhases.length) report(`has conflicting phase labels: ${otherPhases.join(", ")}`);
   if ((issue.assignees ?? []).length) report("already has a GitHub assignee");
+  if (config.issueType.mode === "required" &&
+      issue.issueType?.name !== config.issueType.name) {
+    report(`native issue type must be ${config.issueType.name}`);
+  }
+  if (config.issueType.mode === "unavailable" && issue.issueType) {
+    report("native issue type is available but config marks it unavailable");
+  }
+  if (issue.parent?.number !== config.phaseIssueNumber) {
+    report(`native parent must be phase issue #${config.phaseIssueNumber}`);
+  }
+  for (const error of milestoneReadbackErrors(issue.milestone, config)) report(error);
+  if (config.launchProject.mode === "required") {
+    const projectItem = (issue.projectItems ?? []).find(
+      ({ title }) => title === config.launchProject.title,
+    );
+    if (!projectItem) {
+      report(`missing required launch Project ${config.launchProject.title}`);
+    } else {
+      const status = projectStatusName(projectItem);
+      if (status !== "Ready") {
+        report(`Project Status must be Ready, found ${status ?? "unset"}`);
+      }
+    }
+  }
   const liveBlockers = (issue.blockedBy ?? []).filter(
     (blocker) => blocker.state !== "CLOSED",
   );
@@ -1078,6 +1419,16 @@ function preflight(loopRoot) {
     ["auth", "status", "--hostname", "github.com"],
     { env: githubEnvironment },
   );
+  const runGhJson = (args) => JSON.parse(
+    run(tools.gh, args, { capture: true, env: githubEnvironment }),
+  );
+  const issueTypeErrors = validateIssueTypeReadback(
+    config,
+    runGhJson(issueTypeReadbackArgs(config)),
+  );
+  if (issueTypeErrors.length) {
+    fail(`Unsafe native issue type readback:\n${issueTypeErrors.join("\n")}`);
+  }
 
   const issueOutput = run(
     tools.gh,
@@ -1095,7 +1446,7 @@ function preflight(loopRoot) {
       "--limit",
       String(config.frontierLimit),
       "--json",
-      "number,title,state,url,body,labels,assignees,blockedBy",
+      "number,title,state,url,body,labels,assignees,blockedBy,blocking,milestone,parent,projectItems,issueType",
     ],
     { capture: true, env: githubEnvironment },
   );
@@ -1103,6 +1454,15 @@ function preflight(loopRoot) {
   const result = validateFrontierSnapshot(frontier, config);
   if (result.errors.length) fail(`Unsafe ready-for-agent frontier:\n${result.errors.join("\n")}`);
   if (!result.selected.length) fail("The active ready-for-agent frontier is empty");
+  const projectSnapshots = collectLaunchProjectReadback(config, runGhJson);
+  const projectErrors = validateLaunchProjectReadback(
+    result.selected,
+    config,
+    projectSnapshots,
+  );
+  if (projectErrors.length) {
+    fail(`Unsafe launch Project readback:\n${projectErrors.join("\n")}`);
+  }
   const launchGateErrors = validateLaunchGateEvidence(
     result.selected,
     config,

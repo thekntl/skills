@@ -1,3 +1,11 @@
+## Native lifecycle
+
+Closes #{{ISSUE_NUMBER}}
+
+Assign this pull request to the issue's same dated milestone. Add it explicitly to the launch Project, set Project Status to `In review`, and read back the closing issue, milestone, Project membership, and Status before publishing evidence.
+
+{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-PULL-REQUEST-READBACK.MD}}
+
 ## Problem and outcome
 
 - Canonical issue: {{ISSUE}}

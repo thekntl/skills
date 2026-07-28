@@ -2,6 +2,27 @@
   "schemaVersion": 1,
   "repository": "{{OWNER/REPOSITORY}}",
   "launchMapIssueUrl": "{{CANONICAL_PRODUCT_LAUNCH_MAP_GITHUB_ISSUE_URL}}",
+  "phaseIssueNumber": "{{PHASE_ISSUE_NUMBER}}",
+  "milestoneTitle": "{{DATED_MILESTONE_TITLE}}",
+  "milestoneDueDate": "{{YYYY-MM-DD}}",
+  "issueType": {
+    "mode": "required",
+    "name": "{{ENABLED_IMPLEMENTATION_ISSUE_TYPE}}"
+  },
+  "launchProject": {
+    "mode": "required",
+    "owner": "{{PROJECT_OWNER}}",
+    "number": "{{PROJECT_NUMBER}}",
+    "id": "{{PROJECT_NODE_ID}}",
+    "title": "{{PRODUCT_NAME}} — MVP Launch",
+    "statusFieldId": "{{PROJECT_STATUS_FIELD_NODE_ID}}",
+    "statusOptionIds": {
+      "ready": "{{READY_OPTION_NODE_ID}}",
+      "inProgress": "{{IN_PROGRESS_OPTION_NODE_ID}}",
+      "inReview": "{{IN_REVIEW_OPTION_NODE_ID}}",
+      "blocked": "{{BLOCKED_OPTION_NODE_ID}}"
+    }
+  },
   "phaseLabel": "{{phase:frontend}}",
   "readyLabel": "ready-for-agent",
   "blockedLabel": "blocked",

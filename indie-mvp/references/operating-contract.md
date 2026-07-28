@@ -73,6 +73,8 @@ Keep secrets and recovery material out of GitHub, repositories, logs, and summar
 
 Create repositories under `thekntl`; default to private. Prefer the connected GitHub integration. A sandboxed `gh` authentication failure does not prove the host or connector is logged out.
 
+Before any tracker mutation, read and follow [github-planning.md](github-planning.md). Use native hierarchy, dependencies, milestone, Project membership, issue type, labels, confirmed assignee, linked pull request, and state reason whenever applicable. Create related issues before wiring them, then read every field and relationship back. Body links are explanatory only. An unverified native operation leaves the tracker transition incomplete.
+
 Keep one canonical issue per focused implementation unit. Every pull request must include:
 
 - canonical issue and original problem;

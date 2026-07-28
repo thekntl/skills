@@ -22,6 +22,8 @@
 
 Keep this JSON synchronized with labels and the sections below. Set the confirmed validation route on every implementation issue. For frontend work, also copy the Product Launch Map's live verdict, public-product clock start, and canonical issue URL; validate-first permits frontend only after `GO` or `BUILD-TO-LEARN`. An unattended loop compares those values with the live Product Launch Map marker, and rejects the issue unless every blocker/decision/owner boundary is empty or `false`, `claimed_by` is `null`, and the issue is open, unassigned, and labeled for the active phase plus `ready-for-agent`.
 
+{{INSERT_AND_RESOLVE_ASSETS/GITHUB/NATIVE-TRACKER-READBACK.MD}}
+
 ## Problem
 
 {{PROBLEM}}
@@ -57,6 +59,8 @@ Keep this JSON synchronized with labels and the sections below. Set the confirme
 
 - Native GitHub blocking links: {{BLOCKING_LINKS_OR_NONE}}
 - Approved cross-phase dependencies: {{APPROVED_DEPENDENCIES_OR_NONE}}
+
+This section explains the native graph; it does not replace parent/sub-issue or blocked-by/blocking mutations.
 
 ## Verification
 
