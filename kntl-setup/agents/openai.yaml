@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Setup"
+  short_description: "Stack questionnaire, conventions, permissions for a product repo"
+policy:
+  allow_implicit_invocation: false

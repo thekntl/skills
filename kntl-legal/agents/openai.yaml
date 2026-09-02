@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Legal"
+  short_description: "Legal texts before production: public base plus addendum"
+policy:
+  allow_implicit_invocation: false

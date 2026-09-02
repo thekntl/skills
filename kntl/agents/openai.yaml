@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL"
+  short_description: "Launch a solo indie product the KNTL way"
+policy:
+  allow_implicit_invocation: false

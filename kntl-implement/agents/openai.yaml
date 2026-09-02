@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Implement"
+  short_description: "Worktree, implement, review, smoke, PR, merge; or the ticket chain"
+policy:
+  allow_implicit_invocation: false

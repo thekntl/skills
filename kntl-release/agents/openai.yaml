@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Release"
+  short_description: "The production gate and publication"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,488 @@
+{
+  "schema": "kntl-status/1",
+  "generatedAt": "2026-09-02T09:40:00Z",
+  "product": {
+    "codename": "Pusula",
+    "platforms": ["ios", "web"],
+    "repo": "thekntl/pusula",
+    "map": 1
+  },
+  "phase": {
+    "sequence": ["prereqs", "app-shell", "poc", "setup", "faces", "legal", "release", "post-launch"],
+    "done": ["prereqs", "app-shell", "poc", "setup"],
+    "current": "faces"
+  },
+  "active": {
+    "face": "onboarding",
+    "flow": "onboarding"
+  },
+  "flows": [
+    { "slug": "first-plan", "label": "first-plan", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "onboarding", "label": "onboarding", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "purchase", "label": "purchase", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "sync", "label": "sync", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "support", "label": "support", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "signup", "label": "signup", "scenario": "docs/design/SCENARIOS.md" },
+    { "slug": "launch-campaign", "label": "launch-campaign", "scenario": null },
+    { "slug": "release", "label": "release", "scenario": null }
+  ],
+  "faces": [
+    {
+      "id": "app-shell",
+      "label": "App Shell",
+      "state": "done",
+      "startCondition": "İlk iş",
+      "doneCriteria": "Ana değer akışı gerçek cihazda baştan sona çalışıyor",
+      "counts": { "done": 4, "open": 0, "blocked": 0, "human": 0, "agent": 0 },
+      "tickets": [
+        {
+          "number": 2,
+          "title": "Tasarım dili",
+          "url": "https://github.com/thekntl/pusula/issues/2",
+          "state": "closed",
+          "summary": "Uygulamanın renkleri, yazı tipleri ve buton biçimleri seçildi. Bundan sonra her ekran aynı görünüme sahip olacak.",
+          "flow": "first-plan",
+          "labels": ["kntl:app-shell", "flow:first-plan", "wayfinder:grilling"],
+          "triage": null,
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-12"
+        },
+        {
+          "number": 3,
+          "title": "Ana ekran iskeleti",
+          "url": "https://github.com/thekntl/pusula/issues/3",
+          "state": "closed",
+          "summary": "Uygulamayı açınca görülen ana ekran ve alt sekmeler kuruldu. Kullanıcı bugünkü planını ve yarınki adımını tek bakışta görüyor.",
+          "flow": "first-plan",
+          "labels": ["kntl:app-shell", "flow:first-plan", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-15"
+        },
+        {
+          "number": 4,
+          "title": "Uyku planı hesabı",
+          "url": "https://github.com/thekntl/pusula/issues/4",
+          "state": "closed",
+          "summary": "Uçuş saatleri ve varış şehri girilince günlük uyku ve ışık planı çıkıyor. Bu, uygulamanın asıl işi; ekransız, en yalın haliyle gerçek telefonda çalıştı.",
+          "flow": "first-plan",
+          "labels": ["kntl:app-shell", "flow:first-plan", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-19"
+        },
+        {
+          "number": 5,
+          "title": "Planı ekrana bağla",
+          "url": "https://github.com/thekntl/pusula/issues/5",
+          "state": "closed",
+          "summary": "Hesaplanan plan ana ekranda gün gün görünüyor. Kullanıcı uçuşunu girip ilk planını telefonda görebiliyor.",
+          "flow": "first-plan",
+          "labels": ["kntl:app-shell", "flow:first-plan", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-22"
+        }
+      ],
+      "gaps": [],
+      "decisions": { "count": 5, "provisional": [] }
+    },
+    {
+      "id": "onboarding",
+      "label": "Onboarding",
+      "state": "in-progress",
+      "startCondition": "Tasarım dili onaylandıktan sonra",
+      "doneCriteria": "İlk açılıştan ana değere kadar akış onaylı ve çalışıyor",
+      "counts": { "done": 5, "open": 1, "blocked": 0, "human": 0, "agent": 1 },
+      "tickets": [
+        {
+          "number": 6,
+          "title": "Karşılama ekranı",
+          "url": "https://github.com/thekntl/pusula/issues/6",
+          "state": "closed",
+          "summary": "İlk açılışta kullanıcıyı karşılayan tek ekran. Uygulamanın ne yaptığını bir cümleyle söylüyor ve ilk uçuşu girmeye davet ediyor.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-24"
+        },
+        {
+          "number": 7,
+          "title": "Uçuş girişi",
+          "url": "https://github.com/thekntl/pusula/issues/7",
+          "state": "closed",
+          "summary": "Kullanıcı kalkış ve varış şehrini, uçuş saatini giriyor. Şehir aramada yazım hatası olsa da doğru şehir bulunuyor.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-26"
+        },
+        {
+          "number": 8,
+          "title": "Bildirim izni",
+          "url": "https://github.com/thekntl/pusula/issues/8",
+          "state": "closed",
+          "summary": "Uyku ve ışık hatırlatmaları için izin üçüncü ekranda, nedeni açıklanarak isteniyor. Reddedilirse uygulama yine çalışıyor, hatırlatma gelmiyor.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-27"
+        },
+        {
+          "number": 9,
+          "title": "İlk plan önizleme",
+          "url": "https://github.com/thekntl/pusula/issues/9",
+          "state": "closed",
+          "summary": "Uçuş girilir girilmez ilk üç günün planı özet olarak gösteriliyor. Kullanıcı daha kayıt olmadan uygulamanın işe yaradığını görüyor.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-29"
+        },
+        {
+          "number": 10,
+          "title": "Onboarding'i atla",
+          "url": "https://github.com/thekntl/pusula/issues/10",
+          "state": "closed",
+          "summary": "Her ekranda küçük bir atla bağlantısı var; atlayan kullanıcı boş ana ekrana düşüyor ve oradan uçuş girebiliyor.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-31"
+        },
+        {
+          "number": 11,
+          "title": "İlk açılış ölçümü",
+          "url": "https://github.com/thekntl/pusula/issues/11",
+          "state": "open",
+          "summary": "Kullanıcının onboarding'in hangi ekranında vazgeçtiğini görmek için her ekran geçişi kaydediliyor. Kullanıcı bir şey fark etmiyor; biz nerede kaybettiğimizi öğreniyoruz.",
+          "flow": "onboarding",
+          "labels": ["kntl:onboarding", "flow:onboarding", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        }
+      ],
+      "gaps": [
+        {
+          "title": "Geri dönen kullanıcı",
+          "note": "Uygulamayı silip yeniden yükleyen kullanıcı onboarding'i yeniden görsün mü, karar gerek; /kntl-grilling ile ticket'a dönüşür",
+          "flow": "onboarding"
+        }
+      ],
+      "decisions": {
+        "count": 4,
+        "provisional": [
+          { "id": "D-012", "gist": "Bildirim izni üçüncü ekranda, nedeni açıklanarak istenir" }
+        ]
+      }
+    },
+    {
+      "id": "paywall",
+      "label": "Paywall ve ödeme",
+      "state": "in-progress",
+      "startCondition": "Tasarım dili + stack anketi",
+      "doneCriteria": "Satın alma, geri yükleme ve erişim hakkı gerçek cihazda çalışıyor",
+      "counts": { "done": 1, "open": 4, "blocked": 2, "human": 1, "agent": 1 },
+      "tickets": [
+        {
+          "number": 12,
+          "title": "Paywall ekranı",
+          "url": "https://github.com/thekntl/pusula/issues/12",
+          "state": "closed",
+          "summary": "Üç günlük plan bitince çıkan tek ekran: haftalık ve yıllık paket, deneme süresi, geri yükle bağlantısı. Şimdilik yalnızca görünüm; ödeme henüz bağlı değil.",
+          "flow": "purchase",
+          "labels": ["kntl:paywall", "flow:purchase", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-30"
+        },
+        {
+          "number": 13,
+          "title": "RevenueCat hesabı",
+          "url": "https://github.com/thekntl/pusula/issues/13",
+          "state": "open",
+          "summary": "Ödemeleri yönetecek servis hesabının açılması gerekiyor; bunu yalnızca sen yapabilirsin. Hesap açılınca satın alma ve geri yükleme işleri başlayabilir.",
+          "flow": "purchase",
+          "labels": ["kntl:paywall", "flow:purchase", "ready-for-human"],
+          "triage": "ready-for-human",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        },
+        {
+          "number": 14,
+          "title": "Satın alma akışı",
+          "url": "https://github.com/thekntl/pusula/issues/14",
+          "state": "open",
+          "summary": "Paywall'daki pakete dokununca Apple'ın ödeme penceresi açılıyor ve ödeme bitince plan kilidi kalkıyor. Deneme süresi ilk üç gün ücretsiz.",
+          "flow": "purchase",
+          "labels": ["kntl:paywall", "flow:purchase", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [13],
+          "closedAt": null
+        },
+        {
+          "number": 15,
+          "title": "Satın almayı geri yükle",
+          "url": "https://github.com/thekntl/pusula/issues/15",
+          "state": "open",
+          "summary": "Yeni telefona geçen ya da uygulamayı silip yükleyen kullanıcı tek dokunuşla aboneliğini geri alıyor.",
+          "flow": "purchase",
+          "labels": ["kntl:paywall", "flow:purchase", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [13],
+          "closedAt": null
+        },
+        {
+          "number": 16,
+          "title": "Deneme süresi metni",
+          "url": "https://github.com/thekntl/pusula/issues/16",
+          "state": "open",
+          "summary": "Paywall'da deneme süresinin ne zaman biteceği ve o gün ne kadar çekileceği açık yazıyor. Kullanıcı sürprizle karşılaşmıyor.",
+          "flow": "purchase",
+          "labels": ["kntl:paywall", "flow:purchase", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        }
+      ],
+      "gaps": [
+        {
+          "title": "Aboneliği bitenler",
+          "note": "Süresi dolan kullanıcı ne görür, geri kazanım teklifi olur mu; senaryo yazılınca ticket olur",
+          "flow": "purchase"
+        }
+      ],
+      "decisions": {
+        "count": 6,
+        "provisional": [
+          { "id": "D-044", "gist": "Yıllık paket 29,99 $" },
+          { "id": "D-043", "gist": "Deneme yalnızca haftalık pakette" }
+        ]
+      }
+    },
+    {
+      "id": "platform",
+      "label": "Ürün altyapısı",
+      "state": "in-progress",
+      "startCondition": "Stack anketi",
+      "doneCriteria": "Üç ortam aynı kodla çalışıyor; dış sağlayıcılar değiştirilebilir",
+      "counts": { "done": 1, "open": 4, "blocked": 1, "human": 1, "agent": 2 },
+      "tickets": [
+        {
+          "number": 17,
+          "title": "Veri şeması",
+          "url": "https://github.com/thekntl/pusula/issues/17",
+          "state": "closed",
+          "summary": "Kullanıcı, uçuş ve plan bilgilerinin sunucuda nasıl saklanacağı belirlendi ve kuruldu. Kullanıcı bunu görmez; eşitleme ve yedekleme bunun üstüne gelecek.",
+          "flow": "sync",
+          "labels": ["kntl:platform", "flow:sync", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": "2026-08-28"
+        },
+        {
+          "number": 18,
+          "title": "Üç ortam yapılandırması",
+          "url": "https://github.com/thekntl/pusula/issues/18",
+          "state": "open",
+          "summary": "Geliştirme, deneme ve gerçek ortam aynı kodla, yalnızca bağlantı ayarları farklı olacak şekilde kuruluyor. Böylece denemede çalışan şey gerçekte de çalışır.",
+          "flow": "sync",
+          "labels": ["kntl:platform", "flow:sync", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        },
+        {
+          "number": 19,
+          "title": "Staging sunucusu",
+          "url": "https://github.com/thekntl/pusula/issues/19",
+          "state": "open",
+          "summary": "Deneme ortamı için bir sunucu açılması ve erişimin verilmesi gerekiyor; bunu sen yapıyorsun. Sunucu gelince eşitleme gerçek ortamda denenebilir.",
+          "flow": "sync",
+          "labels": ["kntl:platform", "flow:sync", "ready-for-human"],
+          "triage": "ready-for-human",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        },
+        {
+          "number": 20,
+          "title": "Plan eşitleme",
+          "url": "https://github.com/thekntl/pusula/issues/20",
+          "state": "open",
+          "summary": "Telefonda girilen uçuş ve plan sunucuya gidiyor, web'den de görünüyor. Kullanıcı iki cihazda aynı planı görüyor.",
+          "flow": "sync",
+          "labels": ["kntl:platform", "flow:sync", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [18],
+          "closedAt": null
+        },
+        {
+          "number": 21,
+          "title": "Çökme takibi",
+          "url": "https://github.com/thekntl/pusula/issues/21",
+          "state": "open",
+          "summary": "Uygulama çökerse nerede çöktüğü bize geliyor. Kullanıcı bir şey yapmıyor; biz hatayı kullanıcı yazmadan öğreniyoruz.",
+          "flow": "support",
+          "labels": ["kntl:platform", "flow:support", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        }
+      ],
+      "gaps": [
+        {
+          "title": "Çevrimdışı kullanım",
+          "note": "Uçakta internet yokken plan görünmeli mi, düzenlenebilmeli mi; senaryo yazılınca ticket olur",
+          "flow": "sync"
+        }
+      ],
+      "decisions": { "count": 3, "provisional": [] }
+    },
+    {
+      "id": "landing",
+      "label": "Landing sayfaları",
+      "state": "not-started",
+      "startCondition": "Tasarım dili + niş kararı",
+      "doneCriteria": "Her kampanya hedefi için yayınlanabilir sayfa ve ölçüm var",
+      "counts": { "done": 0, "open": 1, "blocked": 1, "human": 0, "agent": 0 },
+      "tickets": [
+        {
+          "number": 22,
+          "title": "Landing iskeleti",
+          "url": "https://github.com/thekntl/pusula/issues/22",
+          "state": "open",
+          "summary": "Reklamdan gelen kişinin göreceği tek sayfa: ne yapıyoruz, ekran görüntüsü, indir düğmesi. Niş seçilince metin ona göre yazılacak.",
+          "flow": "signup",
+          "labels": ["kntl:landing", "flow:signup", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [23],
+          "closedAt": null
+        }
+      ],
+      "gaps": [],
+      "decisions": { "count": 1, "provisional": [] }
+    },
+    {
+      "id": "marketing",
+      "label": "Pazarlama",
+      "state": "not-started",
+      "startCondition": "App Shell + POC bitince",
+      "doneCriteria": "İlk kampanya kreatifleriyle hazır, ölçüm bağlı",
+      "counts": { "done": 0, "open": 1, "blocked": 0, "human": 1, "agent": 0 },
+      "tickets": [
+        {
+          "number": 23,
+          "title": "Niş seçimi",
+          "url": "https://github.com/thekntl/pusula/issues/23",
+          "state": "open",
+          "summary": "İlk kampanyanın kime sesleneceği: sık uçan iş insanları, uzun yol yolcuları ya da vardiyalı çalışanlar. Ticket'ta üç adayın karşılaştırması var; seçim senin.",
+          "flow": "launch-campaign",
+          "labels": ["kntl:marketing", "flow:launch-campaign", "ready-for-human"],
+          "triage": "ready-for-human",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        }
+      ],
+      "gaps": [],
+      "decisions": { "count": 0, "provisional": [] }
+    },
+    {
+      "id": "legal",
+      "label": "Hukuk",
+      "state": "not-started",
+      "startCondition": "Production'dan hemen önce",
+      "doneCriteria": "Yayına hazır sözleşme ve gizlilik metinleri",
+      "counts": { "done": 0, "open": 1, "blocked": 0, "human": 0, "agent": 1 },
+      "tickets": [
+        {
+          "number": 24,
+          "title": "Gizlilik metni",
+          "url": "https://github.com/thekntl/pusula/issues/24",
+          "state": "open",
+          "summary": "Uygulamanın hangi veriyi neden topladığını anlatan gizlilik metni. Mağazaya göndermeden önce hazır olmalı.",
+          "flow": "release",
+          "labels": ["kntl:legal", "flow:release", "ready-for-agent"],
+          "triage": "ready-for-agent",
+          "assignee": null,
+          "blockedBy": [],
+          "closedAt": null
+        }
+      ],
+      "gaps": [],
+      "decisions": { "count": 0, "provisional": [] }
+    }
+  ],
+  "next": {
+    "kind": "human-pack",
+    "number": null,
+    "title": "İnsan işleri paketi (3)",
+    "why": "Üç iş senin elinde: RevenueCat hesabı, staging sunucusu ve niş seçimi. Bunlar bitince dokuz agent ticket'ı zincirle gidebilir.",
+    "command": "/kntl-next"
+  },
+  "blockers": [
+    {
+      "number": 13,
+      "title": "RevenueCat hesabı",
+      "reason": "Hesabı senin açmanı bekliyor",
+      "blocks": [14, 15]
+    },
+    {
+      "number": 18,
+      "title": "Üç ortam yapılandırması",
+      "reason": "Agent sırasını bekliyor; bitince eşitleme başlayabilir",
+      "blocks": [20]
+    },
+    {
+      "number": 23,
+      "title": "Niş seçimi",
+      "reason": "Senin seçimini bekliyor; niş belli olmadan landing metni yazılamıyor",
+      "blocks": [22]
+    }
+  ],
+  "ownerActions": [
+    {
+      "number": 13,
+      "title": "RevenueCat hesabı",
+      "what": "RevenueCat'te Pusula projesini aç ve iOS uygulamasını ekle; anahtarın nereye konacağı ticket'ta yazıyor"
+    },
+    {
+      "number": 19,
+      "title": "Staging sunucusu",
+      "what": "Sunucu sağlayıcısında deneme makinesini aç ve erişimi ticket'taki listeye göre ver"
+    },
+    {
+      "number": 23,
+      "title": "Niş seçimi",
+      "what": "Ticket'taki üç adaydan birini seç ve yorum olarak yaz"
+    }
+  ],
+  "unfaced": []
+}

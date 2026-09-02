@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Marketing"
+  short_description: "Niche, campaigns, creatives, publishing, measurement"
+policy:
+  allow_implicit_invocation: false

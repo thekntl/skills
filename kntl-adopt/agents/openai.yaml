@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Adopt"
+  short_description: "Bring an existing project into the KNTL flow"
+policy:
+  allow_implicit_invocation: false

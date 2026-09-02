@@ -1,0 +1,36 @@
+---
+name: kntl-release
+description: "Production gate and publication: every applicable face done, legal approved, the whole scenario catalogue smoked on staging with evidence, parity confirmed, then the owner's exact App Store Connect or web deploy checklist and the post-launch handoff."
+disable-model-invocation: true
+---
+
+# KNTL Release
+
+The last step before the product is public. **Public** means available on the App Store or Play, or answering at the production URL; TestFlight, internal testing tracks and a submission in review are intermediate. Publication itself (submitting, releasing, deploying) is the owner's; this skill proves the release build on staging and hands over the exact checklist. Owner voice, ticket bodies, Hikaye, parity, tool access and owner-only limits follow `docs/agents/kntl-conventions.md`; build, simulator, browser and store access paths come from `docs/agents/kntl-stack.md`; tracker operations from `docs/agents/issue-tracker.md`.
+
+## Gate
+
+Read the `wayfinder:map` issue and its open children, `docs/kntl/decisions.jsonl`, the Approval block of `docs/legal/data-provider-inventory.md` and `docs/design/SCENARIOS.md`. Release opens when every applicable face is done or sits under Out of scope on the map, the map has no open ticket other than the `kntl:marketing` activation tickets the owner holds (step 5 folds them into the checklist, step 7 closes them), and the Approval block names the owner's "yayın onayı" `D-` id (the action `/kntl-legal` closes on), `confirmed` in the ledger. Anything short → one line, "Production kapısı henüz açık değil: <yüz> yüzü bitmedi / #N (kısa ad) açık; önce `/kntl-next`." (approval missing: "önce `/kntl-legal`"), and stop. Work inside one ticket titled "Production release", labelled `kntl:platform` and `flow:<slug>` of the first-run scenario (the catalogue's first row in `docs/design/SCENARIOS.md`): create it when absent, claim it, `ready-for-agent` while the agent works, `ready-for-human` from the checklist on.
+
+## İzin paketi
+
+Show once before the first side effect and wait; the answers hold for the whole run, and a `hayır` line becomes a step on the owner's checklist.
+
+```
+İzin paketi — Production release
+1. Staging yapılandırmasıyla build ve çalıştırma                                  evet / hayır
+2. Simülatör/tarayıcıda gezinme ve ekran görüntüsü                                evet / hayır
+3. Kanıtları commit ve push etme, ticket'a yorum yazma                            evet / hayır
+4. Staging build'ini App Store Connect / Play'e yükleme                           evet / hayır
+5. Sürüm etiketini (v<sürüm>) push etme                                           evet / hayır
+```
+
+## Steps
+
+1. **Release build.** `main` clean and equal to `origin/main`; version and build number set in the repo (a bump is a ticket through `/kntl-implement`). Comment `git rev-parse HEAD` with that version and build number on the ticket: the three name the build under test through step 6. Put that exact commit on staging: Apple and Android → archive and upload through the App Store Connect or Play access path in `kntl-stack.md` (row absent → add it, as the stack file says); web → the staging deploy steps from the platform face's `ready-for-human` ticket, run by the owner, continued from their output. Done when the staging app or site reports that version and build number on its About screen or health endpoint, the same the App Store Connect or Play access path shows for the uploaded build, or the deploy output shows for web.
+2. **Parity.** Diff the staging and production value files or build configurations, and read the production composition root. Done when the diff holds connection configuration only, and the production build links only the app targets and the production adapters the composition root selects.
+3. **Smoke the catalogue.** Read `references/release-checklist.md` before the first walk; it holds the evidence row, the per-scenario checks (states, purchase and restore, support, analytics and consent, accessibility) and the once-per-release checks. Walk every scenario in `docs/design/SCENARIOS.md` on staging as a user would, walking and capturing as `kntl-implement`'s `references/smoke.md` says, with the staging build or URL in place of development and `<smoke-dir>` = `docs/kntl/smoke/<N>` (N this ticket's number). Device-only scenarios go on the TestFlight or internal-test build, walked by the owner from your step list. Rows go into one comment on the ticket. Done when every scenario has an evidence row with a verdict and every once-per-release check has its evidence; each defect is either a ticket fixed through `/kntl-implement`, after which steps 1–3 run again on the new build number, or a known limitation the owner accepted in a round (call the Skill tool with `kntl-grilling`), recorded `confirmed` in the ledger.
+4. **Store and site readiness.** Fill the reference's readiness table for the product's targets: verify every row the repo or an access path can answer, draft every text field, carry the rest to the checklist with its exact value. Done when every applicable row reads `agent` verified, `draft` ready, or `owner` with a value.
+5. **Publication checklist.** Call the Skill tool with `wizard` to author the walkthrough from the reference's publication stages, stage prompts and questions in Turkish, values and commands as they are: Apple → App Store Connect from selecting the build to manual release after approval; web → the production deploy from the platform face's ticket, DNS and TLS, health check, rollback command at hand; both → the same-day activation of the campaigns `/kntl-marketing` prepared, one stage per activation ticket with its budget. Post the script path and the stage list on the ticket and flip it to `ready-for-human`. Done when every stage names its value and where it comes from, and the owner has the run command.
+6. **Public.** Continue from the owner's output. Confirm with the reference's lookup commands that the store page or production URL answers a signed-out visitor and reports the release build's version, and through the analytics and crash read tools in `kntl-stack.md` that the first production events arrive. Then tag the released commit `v<version>` and push the tag (line 5 `hayır`: the checklist's last stage did it). Done when `git ls-remote --tags origin v<version>` prints the released commit, and the release record (public URL, version and build, commit and tag, known limitations by D-id, rollback step, campaign state) is a comment on the ticket.
+7. **Hand off.** Add the release line to the map's Decisions so far (public URL, version, ticket); close the ticket with its Hikaye, and each activation ticket whose campaign the release record lists as active; open one ticket per known limitation and per defect the first production events surfaced, with face, flow and triage labels; then tell the owner in Turkish that the product is public, the link to open, and the next two commands, `/kntl-status` (phase moves to post-launch) and `/kntl-next`. Done when the map carries the line, every active campaign's ticket is closed, every limitation has a ticket, and the closing message names the two commands before its `Ticket sözlüğü`.
