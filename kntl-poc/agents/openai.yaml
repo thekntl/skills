@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL POC"
+  short_description: "Prove the value feature without a backend"
+policy:
+  allow_implicit_invocation: false

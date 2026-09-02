@@ -1,9 +1,0 @@
-interface:
-  display_name: "Indie MVP"
-  short_description: "Validate and launch a solo Apple or web MVP"
-  default_prompt: "Use $indie-mvp to choose the validation route, then launch a product from codename and idea to a public, measured MVP."
-policy:
-  # Current Codex package control for an explicitly user-invoked skill.
-  # SKILL.md frontmatter intentionally remains limited to the fields accepted by
-  # the official Skill Creator validator; do not add legacy invocation metadata.
-  allow_implicit_invocation: false

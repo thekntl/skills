@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KNTL Durum Panosu</title>
+<!-- KNTL durum panosu. Sabit şablon; projede değiştirilmez. Veri: ./status.json (kntl-status/1). -->
+<style>
+:root{color-scheme:light dark;--bg:#f4f6f8;--card:#fff;--fg:#1a1d23;--muted:#5d6675;--line:#dfe3e8;--soft:#eef1f4;--ok:#16a34a;--warn:#c2410c;--bad:#dc2626;--next:#d4a900;
+--f-app-shell:#2563eb;--f-onboarding:#059669;--f-paywall:#d97706;--f-platform:#7c3aed;--f-landing:#0891b2;--f-marketing:#db2777;--f-legal:#64748b;--numfill:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1a1f26;--fg:#e6e9ee;--muted:#9aa4b2;--line:#2c333d;--soft:#232a33;--ok:#34d399;--warn:#fb923c;--bad:#f87171;--next:#facc15;
+--f-app-shell:#60a5fa;--f-onboarding:#34d399;--f-paywall:#fbbf24;--f-platform:#a78bfa;--f-landing:#22d3ee;--f-marketing:#f472b6;--f-legal:#94a3b8;--numfill:#0b0e12}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{margin:0 auto;max-width:1400px;padding:16px 20px 48px;background:var(--bg);color:var(--fg)}
+h1,h2,h3{margin:0;font-weight:650}
+a{color:inherit}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;background:var(--soft);padding:1px 5px;border-radius:5px}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+.top h1{font-size:24px}.top h1 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px}
+.meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+.tools{display:flex;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+.seg button{padding:7px 16px;border:0;background:none}
+.seg button.on{background:var(--fg);color:var(--bg)}
+.ghost{padding:6px 12px;border:1px solid var(--line);background:var(--card);border-radius:8px}
+#loadbox{margin:28px auto;max-width:560px;text-align:center}
+#drop{border:2px dashed var(--line);border-radius:14px;padding:36px 20px;background:var(--card)}
+#drop.over{border-color:var(--ok);background:var(--soft)}
+#drop p{margin:0 0 12px;font-size:16px}
+#file{display:none}
+.hint{color:var(--muted);font-size:13px;margin-top:10px}
+#msg{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 12px}
+#filters{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:8px 0 14px;font-size:13px}
+#filters label{display:inline-flex;gap:6px;align-items:center;color:var(--muted)}
+select{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--fg)}
+.sum{color:var(--muted);margin-left:auto}
+.strip{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0;margin:0 0 16px}
+.strip li{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px}
+.strip li.done{color:var(--ok)}
+.strip li.cur{color:var(--fg);border-color:var(--fg);font-weight:600}
+.strip small{color:var(--muted);font-weight:400;font-size:11px}
+.cols{display:grid;grid-template-columns:1fr 300px;gap:16px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-content:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.face{border-top:4px solid var(--c);padding-top:10px}
+.fh{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:0;text-align:left}
+.fh h2{font-size:15px;flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.done{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.pill.in-progress{background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
+.chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:.15s;margin:0 4px 3px}
+.face.open .chev{transform:rotate(45deg);margin-bottom:0}
+.bar{height:6px;background:var(--soft);border-radius:3px;margin:10px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);border-radius:3px}
+.line{margin:0;font-size:12.5px;color:var(--muted)}
+.body{display:none;margin-top:10px}
+.face.open .body{display:block}
+.cond{font-size:12px;color:var(--muted);margin:0 0 8px}.cond b{color:var(--fg);font-weight:600}
+.rows{list-style:none;padding:0;margin:0}
+.row button{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:7px 2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.row button:hover{background:var(--soft)}
+.row .sm{color:var(--muted);font-size:12.5px}
+.row.done b{color:var(--ok)}.row.done b::before{content:"✓ "}
+.row.blocked b{color:var(--bad)}.row.human b{color:var(--warn)}
+.b{font-style:normal;font-size:10.5px;padding:1px 7px;border-radius:999px;font-weight:600;margin:0 2px;vertical-align:1px}
+.b.bad{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.b.warn{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.b.nx{background:color-mix(in srgb,var(--next) 25%,transparent);color:var(--fg)}
+.empty{color:var(--muted);font-size:12.5px;padding:6px 0}
+.gaps{list-style:none;padding:0;margin:8px 0 0}
+.gaps button,.lnk{background:none;border:0;padding:0;text-align:left;text-decoration:underline dotted;text-underline-offset:3px;color:var(--fg)}
+.gaps button::before{content:"◌ ";color:var(--muted)}
+.dec{font-size:12px;color:var(--muted);margin:8px 0 0;border-top:1px dashed var(--line);padding-top:8px}
+aside{display:flex;flex-direction:column;gap:12px}
+.side h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+.side ul{list-style:none;padding:0;margin:0}.side li{padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+.side li p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.big{font-size:15px;font-weight:600;margin:0 0 4px}
+.side p{margin:0 0 6px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--card);margin:0 4px 4px 0}
+.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,var(--muted))}
+button.chip:hover,button.chip.on{border-color:var(--fg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:0 0 12px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg{width:14px;height:14px;border-radius:3px;border:2px solid var(--muted);display:inline-block}
+.lg.done{background:var(--muted)}.lg.open{background:color-mix(in srgb,var(--muted) 25%,transparent)}
+.lg.blk{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 25%,transparent)}
+.lg.hum{border-style:dashed;border-color:var(--fg)}.lg.nx{border-color:var(--next);box-shadow:0 0 5px var(--next)}
+.lg.gap{border-style:dashed;background:none}.lg.edge{width:22px;height:0;border:0;border-top:2px dashed var(--bad);border-radius:0}
+.nxline{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--next);border-radius:10px;padding:10px 14px;margin:0 0 12px}
+.board{position:relative;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+#edges{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2}
+#edges path{stroke:var(--bad);stroke-width:2;fill:none;opacity:.8;stroke-dasharray:5 4}
+.cl{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:10px 12px;flex:1 1 280px;max-width:100%}
+.cl.full{background:color-mix(in srgb,var(--c) 9%,var(--card))}
+.ch{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;width:100%;background:none;border:0;text-align:left;padding:0 0 8px}
+.ch:hover .cn{text-decoration:underline}
+.cn{font-weight:650}.cf{font-size:11.5px;color:var(--muted)}
+.cp{margin-left:auto;font-size:12.5px;color:var(--muted);white-space:nowrap}.cl.full .cp{color:var(--ok);font-weight:600}
+.sw{width:18px;height:18px;border-radius:4px;flex:none}
+.pcs{display:flex;flex-wrap:wrap;gap:2px}
+.pc{width:82px;background:none;border:0;padding:2px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:8px}
+.pc:hover,.pc:focus-visible{background:var(--soft);outline:none}
+.pc svg{width:66px;height:66px;overflow:visible;transition:transform .15s}
+.pc:hover svg{transform:scale(1.07)}
+.pc .base{fill:var(--c)}.pc .pat{opacity:.3}.pc .ring{fill:none;stroke:var(--c);stroke-width:2.5}
+.pc.open .base{fill-opacity:.2}.pc.open .pat{opacity:.12}
+.pc .num{font:700 24px system-ui,sans-serif;fill:var(--fg);text-anchor:middle}
+.pc.done .num{fill:var(--numfill)}
+.pc.blk .ring{stroke:var(--bad)}.pc.blk .base{fill-opacity:.12}
+.lock{display:none}.pc.blk .lock{display:block}
+.lock rect{fill:var(--bad)}.lock path{fill:none;stroke:var(--bad);stroke-width:4}
+.pc.hum .ring{stroke:var(--fg);stroke-dasharray:7 5;stroke-width:3.5}
+.pc.next svg{filter:drop-shadow(0 0 6px var(--next))}
+.pc.next .ring{stroke:var(--next);stroke-width:5}
+.pc.gap .base,.pc.gap .pat{display:none}.pc.gap .ring{stroke:var(--muted);stroke-dasharray:5 5;stroke-width:2}
+.pc.gap .num{fill:var(--muted);font-weight:500}
+.cap{font-size:10.5px;line-height:1.2;color:var(--muted);text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc.done .cap{color:var(--fg)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);width:min(600px,92vw);padding:22px 24px;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{font-size:18px;margin-bottom:8px}dialog h3{font-size:13px;margin:14px 0 4px;color:var(--muted)}
+dialog p{margin:6px 0}dialog ul{margin:4px 0;padding-left:18px}
+.st{font-weight:600}.st.done{color:var(--ok)}.st.blocked{color:var(--bad)}.st.human{color:var(--warn)}
+.dfoot{display:flex;justify-content:flex-end;margin-top:16px}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><h1 id="codename">KNTL <small>durum panosu</small></h1><div class="meta" id="meta">Yükleniyor…</div></div>
+  <div class="tools">
+    <div class="seg"><button data-view="faces" class="on">Yüzler</button><button data-view="puzzle">Puzzle</button></div>
+    <button id="reload" class="ghost" hidden>Yenile</button>
+  </div>
+</header>
+<section id="loadbox" hidden>
+  <div id="drop">
+    <p>status.json dosyasını buraya bırak</p>
+    <label class="ghost">Dosya seç <input id="file" type="file" accept=".json,application/json"></label>
+  </div>
+  <p class="hint">Sayfayı çift tıklayarak açtıysan tarayıcı yanındaki dosyayı kendiliğinden okuyamaz; docs/kntl/status.json dosyasını buraya bırak ya da seç.</p>
+</section>
+<p id="msg" hidden></p>
+<section id="filters" hidden>
+  <label>Yüz <select id="f-face"></select></label>
+  <label>Akış <select id="f-flow"></select></label>
+  <label>Durum <select id="f-state">
+    <option value="">Hepsi</option><option value="done">Yerinde</option><option value="open">Açık</option>
+    <option value="blocked">Bloklu</option><option value="human">Sana düşen</option><option value="gap">Boşluk</option>
+  </select></label>
+  <button id="f-clear" class="ghost" hidden>Süzgeci kaldır</button>
+  <span class="sum" id="sum"></span>
+</section>
+<main id="app"></main>
+<dialog id="dlg"><div id="dbody"></div><div class="dfoot"><button id="dclose" class="ghost">Kapat</button></div></dialog>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <path id="pp" d="M0 0H36C30-6 34-16 50-16C66-16 70-6 64 0H100V36C106 30 116 34 116 50C116 66 106 70 100 64V100H64C70 94 66 84 50 84C34 84 30 94 36 100H0V64C6 70 16 66 16 50C16 34 6 30 0 36Z"/>
+  <pattern id="p0" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="currentColor"/></pattern>
+  <pattern id="p1" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="2" fill="currentColor"/></pattern>
+  <pattern id="p2" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="2.6" fill="currentColor"/></pattern>
+  <pattern id="p3" width="9" height="9" patternUnits="userSpaceOnUse"><path d="M0 0h9v1.8H0zM0 0v9h1.8V0z" fill="currentColor"/></pattern>
+  <pattern id="p4" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="2.6" height="8" fill="currentColor"/></pattern>
+  <pattern id="p5" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="currentColor"/><rect x="5" y="5" width="5" height="5" fill="currentColor"/></pattern>
+  <pattern id="p6" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="3" height="8" fill="currentColor"/></pattern>
+  <pattern id="p7" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></pattern>
+</defs></svg>
+<script>
+(()=>{
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const FACES=["app-shell","onboarding","paywall","platform","landing","marketing","legal"];
+const PH={prereqs:"Ön koşullar","app-shell":"App Shell",poc:"Çekirdek ispatı",setup:"Kurulum",faces:"Yüzler",legal:"Hukuk",release:"Yayın","post-launch":"Yayın sonrası"};
+const ST={"not-started":"Başlamadı","in-progress":"Sürüyor",done:"Bitti","out-of-scope":"Kapsam dışı"};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const Q=new URLSearchParams(location.search);
+let D=null,view="faces",F={face:"",flow:"",state:""},byNum={},flows={},flowIdx={},src="",rt;
+
+function boot(){
+  const v=Q.get("view");view=v==="puzzle"||(Q.get("flow")&&v!=="faces")?"puzzle":"faces";
+  F.face=Q.get("face")||"";F.flow=Q.get("flow")||"";F.state=Q.get("state")||"";
+  $$(".seg button").forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+  $("#reload").onclick=load;
+  ["face","flow","state"].forEach(k=>$("#f-"+k).onchange=e=>{F[k]=e.target.value;render()});
+  $("#f-clear").onclick=()=>{F={face:"",flow:"",state:""};render()};
+  const dz=$("#drop"),fi=$("#file");
+  fi.onchange=()=>fi.files[0]&&readFile(fi.files[0]);
+  dz.ondragover=e=>{e.preventDefault();dz.classList.add("over")};
+  dz.ondragleave=()=>dz.classList.remove("over");
+  dz.ondrop=e=>{e.preventDefault();dz.classList.remove("over");const f=e.dataTransfer.files[0];f&&readFile(f)};
+  const dlg=$("#dlg");$("#dclose").onclick=()=>dlg.close();dlg.onclick=e=>{if(e.target===dlg)dlg.close()};
+  addEventListener("keydown",e=>{if(e.key==="Escape"&&dlg.open)dlg.close()});
+  document.addEventListener("click",onClick);
+  addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(drawEdges,120)});
+  load();
+}
+async function load(){
+  try{const r=await fetch("./status.json",{cache:"no-store"});if(!r.ok)throw new Error(r.status);use(await r.json(),"fetch")}
+  catch(e){$("#loadbox").hidden=false;$("#meta").textContent="Veri bekleniyor";$("#app").innerHTML=""}
+}
+function readFile(f){f.text().then(t=>{try{use(JSON.parse(t),"file")}catch(e){msg("Dosya okunamadı: içerik bozuk görünüyor.")}})}
+function msg(t){const m=$("#msg");m.textContent=t;m.hidden=false}
+function use(j,how){
+  if(!j||j.schema!=="kntl-status/1"){msg("Bu dosya bu panonun sürümüne uymuyor; /kntl-status ile yeniden üret.");return}
+  D=j;src=how;index();
+  $("#loadbox").hidden=true;$("#msg").hidden=true;$("#reload").hidden=how!=="fetch";$("#filters").hidden=false;
+  if(F.face&&!D.faces.some(f=>f.id===F.face))F.face="";
+  if(F.flow&&!flows[F.flow])F.flow="";if(F.state&&!["done","open","blocked","human","gap"].includes(F.state))F.state="";
+  fillSelects();render();
+  const t=Q.get("ticket");if(t&&byNum[t])openTicket(+t);Q.delete("ticket");
+}
+function addFlow(s){if(s&&!flows[s]){flows[s]={slug:s,label:s,scenario:null};flowIdx[s]=Object.keys(flowIdx).length}}
+function index(){
+  byNum={};flows={};flowIdx={};
+  (D.flows||[]).forEach((f,i)=>{flows[f.slug]=f;flowIdx[f.slug]=i});
+  D.faces.forEach(f=>{f.tickets=f.tickets||[];f.gaps=f.gaps||[];
+    f.tickets.forEach(t=>{t.face=f.id;t.blockedBy=t.blockedBy||[];t.labels=t.labels||[];byNum[t.number]=t;addFlow(t.flow)});
+    f.gaps.forEach(g=>addFlow(g.flow))});
+}
+function fillSelects(){
+  const opt=(v,l,s)=>`<option value="${esc(v)}"${s?" selected":""}>${esc(l)}</option>`;
+  $("#f-face").innerHTML=opt("","Hepsi")+sortFaces().map(f=>opt(f.id,f.label,F.face===f.id)).join("");
+  $("#f-flow").innerHTML=opt("","Hepsi")+Object.values(flows).sort((a,b)=>flowIdx[a.slug]-flowIdx[b.slug]).map(f=>opt(f.slug,f.label,F.flow===f.slug)).join("");
+}
+const sortFaces=()=>[...D.faces].sort((a,b)=>(FACES.indexOf(a.id)+1||99)-(FACES.indexOf(b.id)+1||99));
+const faceById=id=>D.faces.find(f=>f.id===id);
+const flowLabel=s=>s?(flows[s]||{label:s}).label:"Akışsız";
+const tstate=t=>t.state==="closed"?"done":t.blockedBy.length?"blocked":t.triage==="ready-for-human"?"human":"open";
+const isNext=t=>D.next&&(D.next.kind==="ticket"?D.next.number===t.number:D.next.kind==="human-pack"&&t.state==="open"&&t.triage==="ready-for-human");
+function stateOk(t){const s=F.state;if(!s)return true;if(s==="gap")return false;if(s==="done")return t.state==="closed";if(t.state!=="open")return false;
+  return s==="open"||(s==="blocked"&&t.blockedBy.length>0)||(s==="human"&&t.triage==="ready-for-human")}
+const tf=t=>(!F.face||t.face===F.face)&&(!F.flow||(t.flow||"")===F.flow)&&stateOk(t);
+const gf=(f,g)=>(!F.face||f.id===F.face)&&(!F.flow||(g.flow||"")===F.flow)&&(!F.state||F.state==="gap");
+function cnt(f){const c={done:0,open:0,blocked:0,human:0,agent:0};f.tickets.forEach(t=>{if(t.state==="closed")c.done++;else{c.open++;if(t.blockedBy.length)c.blocked++;if(t.triage==="ready-for-human")c.human++;if(t.triage==="ready-for-agent"&&!t.blockedBy.length)c.agent++}});return c}
+const ref=n=>{const t=byNum[n];return t?`<button class="lnk" data-n="${n}">#${n} (${esc(t.title)})</button>`:`#${n}`};
+const when=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleString("tr-TR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+" · "};
+const chip=(id,label,attr="")=>`<span class="chip" style="--c:var(--f-${esc(id)})" ${attr}>${esc(label)}</span>`;
+
+function render(){
+  if(!D)return;
+  const p=D.product||{};
+  $("#codename").innerHTML=`${esc(p.codename||"KNTL")} <small>durum panosu</small>`;
+  const repo=p.repo?`<a href="https://github.com/${esc(p.repo)}" target="_blank" rel="noopener">${esc(p.repo)}</a>`:"";
+  $("#meta").innerHTML=[(p.platforms||[]).join(", "),repo,p.map?`harita #${p.map}`:"",`Üretildi: ${when(D.generatedAt)}<code>${esc(D.generatedAt)}</code>`,src==="file"?"dosyadan yüklendi":""].filter(Boolean).join(" · ");
+  $$(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
+  $("#f-face").value=F.face;$("#f-flow").value=F.flow;$("#f-state").value=F.state;
+  $("#f-clear").hidden=!(F.face||F.flow||F.state);
+  $("#app").innerHTML=view==="puzzle"?renderPuzzle():renderFaces();
+  summary();syncUrl();requestAnimationFrame(drawEdges);
+}
+function summary(){
+  let n=0,d=0,b=0,h=0,g=0;
+  D.faces.forEach(f=>{f.tickets.forEach(t=>{if(!tf(t))return;n++;if(t.state==="closed")d++;else{if(t.blockedBy.length)b++;if(t.triage==="ready-for-human")h++}});f.gaps.forEach(x=>{if(gf(f,x))g++})});
+  $("#sum").textContent=`${n} parça · ${d} yerinde · ${n-d} açık (${b} bloklu, ${h} sana düşen) · ${g} boşluk`;
+}
+function syncUrl(){try{const u=new URL(location.href);["view","face","flow","state"].forEach(k=>{const v=k==="view"?view:F[k];v?u.searchParams.set(k,v):u.searchParams.delete(k)});history.replaceState(null,"",u)}catch(e){}}
+
+/* ---- Yüzler ---- */
+function renderFaces(){
+  const cards=sortFaces().filter(f=>!F.face||f.id===F.face).map(faceCard).filter(Boolean).join("");
+  return `${strip()}<div class="cols"><div class="grid">${cards||'<p class="empty">Bu süzgece uyan yüz yok.</p>'}</div><aside>${side()}</aside></div>`;
+}
+function strip(){const p=D.phase||{sequence:[],done:[]};
+  return `<ol class="strip">${p.sequence.map(s=>{const d=p.done.includes(s),c=p.current===s;
+    return `<li class="${d?"done":c?"cur":""}"><span>${d?"✓":c?"●":"○"}</span><span>${esc(PH[s]||s)}</span>${c?"<small>şimdi</small>":""}</li>`}).join("")}</ol>`}
+function faceCard(f){
+  const rows=f.tickets.filter(tf),gaps=f.gaps.map((g,i)=>[g,i]).filter(([g])=>gf(f,g));
+  if((F.flow||F.state)&&!rows.length&&!gaps.length)return "";
+  const c=cnt(f),total=c.done+c.open,pct=total?Math.round(c.done/total*100):0;
+  const open=f.state==="in-progress"||F.face||F.flow||F.state;
+  const dec=f.decisions||{count:0,provisional:[]};
+  return `<article class="card face ${f.state}${open?" open":""}" style="--c:var(--f-${esc(f.id)})">
+  <button class="fh" data-toggle="1"><span class="dot"></span><h2>${esc(f.label)}</h2><span class="pill ${f.state}">${ST[f.state]||esc(f.state)}</span><span class="chev"></span></button>
+  <div class="bar"><i style="width:${pct}%"></i></div>
+  <p class="line">${c.done}/${total} yerinde · ${c.human} insan işi, ${c.agent} agent ticket'ı, ${c.blocked} bloklu</p>
+  <div class="body"><p class="cond"><b>Başlar:</b> ${esc(f.startCondition)}<br><b>Biter:</b> ${esc(f.doneCriteria)}</p>
+  <ul class="rows">${rows.map(row).join("")||'<li class="empty">'+(f.tickets.length?"Bu süzgece uyan ticket yok":"Henüz ticket yok")+"</li>"}</ul>
+  ${gaps.length?`<ul class="gaps">${gaps.map(([g,i])=>`<li><button data-gap="${esc(f.id)}|${i}">Boşluk: ${esc(g.title)}</button></li>`).join("")}</ul>`:""}
+  <p class="dec">${dec.count||0} karar${(dec.provisional||[]).length?" · geçici: "+dec.provisional.map(x=>`<b>${esc(x.id)}</b> ${esc(x.gist)}`).join(" · "):""}</p>
+  </div></article>`;
+}
+function badges(t){const s=tstate(t);return (s==="blocked"?'<em class="b bad">bloklu</em>':"")+(t.state==="open"&&t.triage==="ready-for-human"?'<em class="b warn">sana düşen</em>':"")+(isNext(t)?'<em class="b nx">sıradaki</em>':"")}
+function row(t){return `<li class="row ${tstate(t)}"><button data-n="${t.number}" title="${esc(t.summary)}"><b>#${t.number}</b> — ${esc(t.title)}${badges(t)} — <span class="sm">${esc(t.summary)||"özet yok"}</span></button></li>`}
+function side(){
+  const n=D.next||{},bl=D.blockers||[],oa=D.ownerActions||[],uf=D.unfaced||[];
+  return `<section class="card side"><h3>Sıradaki</h3><p class="big">${n.number?`#${n.number} — `:""}${esc(n.title||"—")}</p><p>${esc(n.why||"")}</p>${n.command?`<code>${esc(n.command)}</code>`:""}</section>
+  <section class="card side"><h3>Blokerler</h3>${bl.length?`<ul>${bl.map(b=>`<li>${ref(b.number)}<p>${esc(b.reason)}</p><p>Bekletiyor: ${(b.blocks||[]).map(ref).join(", ")}</p></li>`).join("")}</ul>`:'<p class="empty">Bloker yok.</p>'}</section>
+  <section class="card side"><h3>Sana düşenler</h3>${oa.length?`<ul>${oa.map(o=>`<li>${ref(o.number)}<p>${esc(o.what)}</p></li>`).join("")}</ul>`:'<p class="empty">Sana düşen iş yok.</p>'}</section>
+  ${uf.length?`<section class="card side"><h3>Yüzü olmayanlar</h3><ul>${uf.map(u=>`<li>#${u.number} — ${esc(u.title)}</li>`).join("")}</ul><p class="small">Bunlara bir yüz etiketi gerek.</p></section>`:""}`;
+}
+
+/* ---- Puzzle ---- */
+function clusters(){
+  const out=[];
+  sortFaces().forEach(f=>{if(F.face&&f.id!==F.face)return;const m=new Map();
+    const get=k=>m.get(k)||m.set(k,{face:f,flow:k==="_"?null:k,tickets:[],gaps:[]}).get(k);
+    f.tickets.forEach(t=>get(t.flow||"_").tickets.push(t));
+    f.gaps.forEach((g,i)=>get(g.flow||"_").gaps.push([g,i]));
+    [...m.values()].sort((a,b)=>(a.flow?flowIdx[a.flow]:999)-(b.flow?flowIdx[b.flow]:999)).forEach(c=>out.push(c))});
+  return out;
+}
+function renderPuzzle(){
+  const n=D.next||{};
+  const faceChips=sortFaces().map(f=>`<button class="chip${F.face===f.id?" on":""}" style="--c:var(--f-${esc(f.id)})" data-facefilter="${esc(f.id)}">${esc(f.label)}</button>`).join("");
+  const legend=`<div class="legend">${faceChips}<span><i class="lg done"></i>yerinde</span><span><i class="lg open"></i>açık</span><span><i class="lg blk"></i>bloklu (kilitli)</span><span><i class="lg hum"></i>sana düşen</span><span><i class="lg nx"></i>sıradaki</span><span><i class="lg gap"></i>boşluk</span><span><i class="lg edge"></i>bekleten → bekleyen</span></div>`;
+  const nx=n.title?`<p class="nxline"><b>Sıradaki:</b> ${n.number?`#${n.number} — `:""}${esc(n.title)} — ${esc(n.why||"")} ${n.command?`<code>${esc(n.command)}</code>`:""}</p>`:"";
+  const cards=clusters().map(clusterCard).filter(Boolean).join("");
+  return `${legend}${nx}<div class="board" id="board"><svg id="edges"></svg>${cards||'<p class="empty">Bu süzgece uyan parça yok.</p>'}</div>`;
+}
+function clusterCard(c){
+  const vis=c.tickets.filter(tf),vg=c.gaps.filter(([g])=>gf(c.face,g));
+  if(!vis.length&&!vg.length)return "";
+  const done=c.tickets.filter(t=>t.state==="closed").length,total=c.tickets.length,g=c.gaps.length,full=done===total&&!g;
+  const pi=c.flow?flowIdx[c.flow]%8:0;
+  return `<section class="cl${full?" full":""}" style="--c:var(--f-${esc(c.face.id)})">
+  <button class="ch" data-cluster="${esc(c.face.id)}|${esc(c.flow||"")}"><svg class="sw" viewBox="0 0 18 18"><rect width="18" height="18" rx="4" fill="var(--c)"/><rect width="18" height="18" rx="4" fill="url(#p${pi})" opacity=".35"/></svg>
+  <span class="cn">${esc(flowLabel(c.flow))}${c.flow?" akışı":""}</span><span class="cf">${esc(c.face.label)}</span><span class="cp">${full?"✓ ":""}${done}/${total} yerinde${g?`, ${g} boşluk`:""}</span></button>
+  <div class="pcs">${vis.map(piece).join("")}${vg.map(([x,i])=>gapPiece(c.face,x,i)).join("")}</div></section>`;
+}
+const SVG=(inner)=>`<svg viewBox="-18 -18 136 136" aria-hidden="true">${inner}</svg>`;
+function piece(t){
+  const s=tstate(t),cls=["pc",t.state==="closed"?"done":"open"];
+  if(s==="blocked")cls.push("blk");if(t.state==="open"&&t.triage==="ready-for-human")cls.push("hum");if(isNext(t))cls.push("next");
+  const pi=t.flow?flowIdx[t.flow]%8:0;
+  return `<button class="${cls.join(" ")}" data-n="${t.number}" title="#${t.number} — ${esc(t.title)}">${SVG(`<use href="#pp" class="base"/><use href="#pp" class="pat" fill="url(#p${pi})"/><use href="#pp" class="ring"/><text x="50" y="59" class="num">${t.number}</text><g class="lock" transform="translate(66 64)"><path d="M6 14v-5a8 8 0 0 1 16 0v5"/><rect y="14" width="28" height="20" rx="4"/></g>`)}<span class="cap">${esc(t.title)}</span></button>`;
+}
+function gapPiece(f,g,i){return `<button class="pc gap" data-gap="${esc(f.id)}|${i}" title="Boşluk: ${esc(g.title)}">${SVG(`<use href="#pp" class="ring"/><text x="50" y="60" class="num">?</text>`)}<span class="cap">${esc(g.title)}</span></button>`}
+function drawEdges(){
+  const board=$("#board"),svg=$("#edges");if(!board||!svg)return;
+  const R=board.getBoundingClientRect();svg.setAttribute("width",R.width);svg.setAttribute("height",R.height);
+  const at=el=>{const r=el.querySelector("svg").getBoundingClientRect();return[r.left-R.left+r.width/2,r.top-R.top+r.height/2]};
+  let s='<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5 0 10z" fill="var(--bad)"/></marker></defs>';
+  $$(".pc[data-n]",board).forEach(el=>{const t=byNum[el.dataset.n];if(!t||t.state!=="open")return;
+    t.blockedBy.forEach(b=>{const be=$(`.pc[data-n="${b}"]`,board);if(!be)return;
+      const[ax,ay]=at(be),[zx,zy]=at(el),dx=zx-ax,dy=zy-ay,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,k=Math.min(40,d/4);
+      const x1=ax+ux*30,y1=ay+uy*30,x2=zx-ux*34,y2=zy-uy*34,cx=(ax+zx)/2-uy*k,cy=(ay+zy)/2+ux*k;
+      s+=`<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}" marker-end="url(#arr)"><title>#${b} bekletiyor → #${t.number}</title></path>`})});
+  svg.innerHTML=s;
+}
+
+/* ---- Ayrıntılar ---- */
+function show(html){$("#dbody").innerHTML=html;const d=$("#dlg");d.open||d.showModal();d.scrollTop=0}
+function openTicket(n){
+  const t=byNum[n];if(!t)return;const f=faceById(t.face)||{label:t.face},s=tstate(t);
+  const txt={done:`Yerinde${t.closedAt?` — ${esc(t.closedAt)} günü kapandı`:""}`,blocked:`Bloklu — bekliyor: ${t.blockedBy.map(ref).join(", ")}`,
+    human:"Sana düşen — senin elin gerek",open:t.assignee?`Açık — üstlenen: ${esc(t.assignee)}`:"Açık — sırada, agent alabilir"}[s];
+  const waits=Object.values(byNum).filter(x=>x.state==="open"&&x.blockedBy.includes(n));
+  show(`<h2>#${n} — ${esc(t.title)}</h2><p>${chip(t.face,f.label)}${t.flow?chip(t.face,flowLabel(t.flow)+" akışı"):""}</p>
+  <p class="st ${s}">${txt}</p><p>${esc(t.summary)||"Bu ticket'ın sade özeti yok."}</p>
+  ${waits.length?`<p><b>Bunu bekleyenler:</b> ${waits.map(x=>ref(x.number)).join(", ")}</p>`:""}
+  ${isNext(t)&&D.next.command?`<p><b>Sıradaki iş bu:</b> <code>${esc(D.next.command)}</code></p>`:""}
+  ${t.url?`<p><a href="${esc(t.url)}" target="_blank" rel="noopener">GitHub'da aç</a></p>`:""}`);
+}
+function openCluster(faceId,flow){
+  const f=faceById(faceId);if(!f)return;const fl=flow?flows[flow]:null;
+  const ts=f.tickets.filter(t=>(t.flow||"")===(flow||"")),gs=f.gaps.filter(g=>(g.flow||"")===(flow||""));
+  const done=ts.filter(t=>t.state==="closed"),open=ts.filter(t=>t.state==="open");
+  show(`<h2>${esc(flowLabel(flow))}${flow?" akışı":""}</h2><p>${chip(f.id,f.label)}</p>
+  <p class="st">${done.length}/${ts.length} yerinde${gs.length?`, ${gs.length} boşluk`:""}${done.length===ts.length&&!gs.length?" — bu akış uçtan uca tamam":""}</p>
+  <p>${flow?`Akış: <code>${esc(flow)}</code> · `:""}${fl&&fl.scenario?`Senaryo: <code>${esc(fl.scenario)}</code>`:"Senaryo henüz yazılmamış."}</p>
+  <h3>Kalan parçalar</h3>${open.length?`<ul>${open.map(t=>`<li>${ref(t.number)}${badges(t)}</li>`).join("")}</ul>`:"<p>Kalan parça yok.</p>"}
+  ${gs.length?`<h3>Boşluklar</h3><ul>${gs.map(g=>`<li><b>${esc(g.title)}</b> — ${esc(g.note)}</li>`).join("")}</ul>`:""}
+  ${done.length?`<h3>Yerinde</h3><p class="small">${done.map(t=>ref(t.number)).join(", ")}</p>`:""}`);
+}
+function openGap(faceId,i){
+  const f=faceById(faceId),g=f&&f.gaps[i];if(!g)return;
+  show(`<h2>Boşluk: ${esc(g.title)}</h2><p>${chip(f.id,f.label)}${g.flow?chip(f.id,flowLabel(g.flow)+" akışı"):""}</p>
+  <p class="st">Henüz ticket'ı yok; puzzle'da boş yuva.</p><h3>Bu boşluğu doldurmak için</h3><p>${esc(g.note)||"/kntl-grilling ile ticket'a dönüşür."}</p>`);
+}
+function onClick(e){
+  const el=e.target.closest("[data-n],[data-cluster],[data-gap],[data-toggle],[data-facefilter]");if(!el)return;
+  if(el.dataset.n)openTicket(+el.dataset.n);
+  else if(el.dataset.cluster){const[a,b]=el.dataset.cluster.split("|");openCluster(a,b||null)}
+  else if(el.dataset.gap){const[a,b]=el.dataset.gap.split("|");openGap(a,+b)}
+  else if(el.dataset.toggle)el.closest(".face").classList.toggle("open");
+  else if(el.dataset.facefilter){F.face=F.face===el.dataset.facefilter?"":el.dataset.facefilter;render()}
+}
+boot();
+})();
+</script>
+</body>
+</html>

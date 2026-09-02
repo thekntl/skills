@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Explain"
+  short_description: "Explain the open tickets in plain language, grouped"
+policy:
+  allow_implicit_invocation: false

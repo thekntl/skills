@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Status"
+  short_description: "Where are we: recap, faces, dashboard"
+policy:
+  allow_implicit_invocation: false

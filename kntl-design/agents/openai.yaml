@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Design"
+  short_description: "UI/UX from lo-fi to foundation on the real platform, in the Design Lab"
+policy:
+  allow_implicit_invocation: false

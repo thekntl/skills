@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Backend"
+  short_description: "Backend, environments and integrations behind adapters"
+policy:
+  allow_implicit_invocation: false

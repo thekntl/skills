@@ -1,0 +1,5 @@
+interface:
+  display_name: "KNTL Handoff"
+  short_description: "Project-level handoff between harnesses or machines"
+policy:
+  allow_implicit_invocation: false

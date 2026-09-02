@@ -1,9 +1,0 @@
-[
-  "exec",
-  "--sandbox",
-  "workspace-write",
-  "-C",
-  "%WORKTREE%",
-  "--skip-git-repo-check",
-  "-"
-]
